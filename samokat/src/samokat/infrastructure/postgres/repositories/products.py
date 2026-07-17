@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert
 
 from samokat.application.dto import ProductCardData, ProductData
@@ -76,6 +76,10 @@ class ProductRepo(BaseRepo):
         self,
         product_id: int,
     ) -> ProductCardData | None:
+        # Код для имитации сетевой задержки с урока:
+        # print("GOING TO DATABASE")
+        # delay = select(func.pg_sleep(0.1)).cte("delay")
+        # query = select(ProductModel).select_from(ProductModel, delay).where...
         query = select(ProductModel).where(
             ProductModel.id == product_id,
             ProductModel.is_active.is_(True),

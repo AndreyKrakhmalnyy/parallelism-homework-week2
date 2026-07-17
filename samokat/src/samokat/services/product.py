@@ -1,5 +1,6 @@
 from samokat.domain.exceptions import ProductCardNotFoundError, UserAddressNotFoundError
 from samokat.application.dto import CategoryData, ProductCardData, ProductData
+from samokat.infrastructure.concurrency.singleflight import SingleFlight
 from samokat.infrastructure.postgres.manager import DatabaseManager
 from samokat.infrastructure.redis.darkstore_products import DarkstoreProductsCache
 from samokat.infrastructure.redis.product_card_cache import ProductCache
@@ -11,10 +12,12 @@ class ProductService:
         db: DatabaseManager,
         product_cache: ProductCache,
         darkstore_products_cache: DarkstoreProductsCache,
+        singleflight: SingleFlight,
     ) -> None:
         self.db = db
         self.product_cache = product_cache
         self.darkstore_products_cache = darkstore_products_cache
+        self.singleflight = singleflight
 
     async def get_categories(self) -> list[CategoryData]:
         categories_cached = await self.product_cache.get_categories()
@@ -29,10 +32,32 @@ class ProductService:
         self,
         product_id: int,
     ) -> ProductCardData:
+        """Реализация с Singleflight"""
         product_cached = await self.product_cache.get_product_card(product_id)
         if product_cached is not None:
             return product_cached
 
+        product = await self.singleflight.run(
+            key=f"product_id:{product_id}",
+            operation=self._load_product_card(product_id),
+        )
+
+        return product
+
+    # async def get_product_card(
+    #     self,
+    #     product_id: int,
+    # ) -> ProductCardData:
+    #     """Старая реализация"""
+    #     product_cached = await self.product_cache.get_product_card(product_id)
+    #     if product_cached is not None:
+    #         return product_cached
+    #
+    #     product = await self._load_product_card(product_id)
+    #
+    #     return product
+
+    async def _load_product_card(self, product_id: int):
         product_from_db = await self.db.products.get_product_card(product_id)
         if product_from_db is None:
             raise ProductCardNotFoundError

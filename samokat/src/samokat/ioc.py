@@ -23,6 +23,7 @@ from samokat.infrastructure.clickhouse.manager import (
     ClickHouseManager,
     create_clickhouse_manager,
 )
+from samokat.infrastructure.concurrency.singleflight import SingleFlight
 from samokat.infrastructure.postgres.manager import DatabaseManager, PostgresClient
 from samokat.infrastructure.redis.darkstore_products import DarkstoreProductsCache
 from samokat.infrastructure.redis.manager import RedisManager, create_redis_manager
@@ -208,6 +209,12 @@ class SecurityProvider(Provider):
         )
 
 
+class SingleFlightProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_singleflight(self) -> SingleFlight:
+        return SingleFlight()
+
+
 class ServiceProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_user_service(
@@ -259,11 +266,13 @@ class ServiceProvider(Provider):
         db: DatabaseManager,
         product_cache: ProductCache,
         darkstore_products_cache: DarkstoreProductsCache,
+        singleflight: SingleFlight,
     ) -> ProductService:
         return ProductService(
             db=db,
             product_cache=product_cache,
             darkstore_products_cache=darkstore_products_cache,
+            singleflight=singleflight,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -301,6 +310,7 @@ def create_container(settings: Settings):
         ClickHouseProvider(),
         ConnectorProvider(),
         CacheProvider(),
+        SingleFlightProvider(),
         SecurityProvider(),
         ServiceProvider(),
         FastapiProvider(),
