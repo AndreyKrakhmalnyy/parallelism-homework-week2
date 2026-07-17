@@ -23,6 +23,7 @@ from samokat.infrastructure.clickhouse.manager import (
     ClickHouseManager,
     create_clickhouse_manager,
 )
+from samokat.infrastructure.clickhouse.queue import ClickhouseEventQueue
 from samokat.infrastructure.concurrency.singleflight import SingleFlight
 from samokat.infrastructure.postgres.manager import DatabaseManager, PostgresClient
 from samokat.infrastructure.redis.darkstore_products import DarkstoreProductsCache
@@ -217,6 +218,12 @@ class SingleFlightProvider(Provider):
         return SingleFlight()
 
 
+class ClickhouseEventQueueProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_ch_event_queue(self, ch_client: ClickHouseManager) -> ClickhouseEventQueue:
+        return ClickhouseEventQueue(ch_client)
+
+
 class ServiceProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_user_service(
@@ -242,11 +249,11 @@ class ServiceProvider(Provider):
     def get_cart_service(
         self,
         db: DatabaseManager,
-        clickhouse: ClickHouseManager,
+        ch_event_queue: ClickhouseEventQueue,
     ) -> CartService:
         return CartService(
             db=db,
-            clickhouse=clickhouse,
+            events=ch_event_queue,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -313,6 +320,7 @@ def create_container(settings: Settings):
         ConnectorProvider(),
         CacheProvider(),
         SingleFlightProvider(),
+        ClickhouseEventQueueProvider(),
         SecurityProvider(),
         ServiceProvider(),
         FastapiProvider(),

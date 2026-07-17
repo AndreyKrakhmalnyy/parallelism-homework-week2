@@ -1,9 +1,8 @@
-from datetime import UTC, datetime
-
 from clickhouse_connect.driver import AsyncClient
 from clickhouse_connect import get_async_client
 
 from samokat.config import ClickHouseConfig
+from samokat.infrastructure.clickhouse.schemas import UserEvent
 
 
 class ClickHouseManager:
@@ -19,12 +18,9 @@ class ClickHouseManager:
     async def insert(self, table_name: str, columns: list[str], data: list):
         await self.client.insert(table_name, data, column_names=columns)
 
-    async def insert_user_event(
+    async def insert_user_events(
         self,
-        user_id: int,
-        event: str,
-        category: str,
-        event_time: datetime,
+        events: list[UserEvent]
     ) -> None:
         await self.insert(
             table_name="user_events",
@@ -33,16 +29,14 @@ class ClickHouseManager:
                 "event",
                 "category",
                 "event_time",
-                "created_time",
             ],
             data=[
                 [
-                    user_id,
-                    event,
-                    category,
-                    event_time,
-                    datetime.now(UTC),
-                ],
+                    event.user_id,
+                    event.event,
+                    event.category,
+                    event.event_time,
+                ] for event in events
             ],
         )
 

@@ -1,8 +1,7 @@
 import logging
-from datetime import UTC, datetime
 
 from samokat.application.dto import CartData, CartItemDetailsData
-from samokat.infrastructure.clickhouse.manager import ClickHouseManager
+from samokat.infrastructure.clickhouse.queue import ClickhouseEventQueue
 from samokat.infrastructure.postgres.manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -12,10 +11,10 @@ class CartService:
     def __init__(
         self,
         db: DatabaseManager,
-        clickhouse: ClickHouseManager,
+        events: ClickhouseEventQueue,
     ) -> None:
         self.db = db
-        self.clickhouse = clickhouse
+        self.events = events
 
     async def add_item(
         self,
@@ -33,21 +32,7 @@ class CartService:
         await self.db.commit()
 
         event_category = category or "unknown"
-        try:
-            await self.clickhouse.insert_user_event(
-                user_id=user_id,
-                event="cart_item_added",
-                category=event_category,
-                event_time=datetime.now(UTC),
-            )
-        except Exception:
-            logger.exception(
-                "Failed to write cart item added event to ClickHouse",
-                extra={
-                    "user_id": user_id,
-                    "category": event_category,
-                },
-            )
+        self.events.add_user_event(user_id, "card_added_item", event_category)
 
     async def update_item_quantity(
         self,
