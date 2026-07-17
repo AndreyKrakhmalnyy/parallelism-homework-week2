@@ -122,6 +122,7 @@ class ConnectorProvider(Provider):
     async def get_address_connector(
         self,
         config: ConnectorsConfig,
+        redis_manager: RedisManager,
     ) -> AsyncIterator[AddressConnector]:
         address_config = config.address
         connector = AddressConnector(
@@ -129,6 +130,7 @@ class ConnectorProvider(Provider):
             client_id=address_config.client_id,
             client_secret=address_config.client_secret.get_secret_value(),
             timeout=address_config.timeout,
+            redis_client=redis_manager,
         )
 
         yield connector
