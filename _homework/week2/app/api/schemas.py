@@ -1,9 +1,7 @@
-from datetime import datetime
+from app.domain.enums import BookingStatus, SeatStatus
 from typing import Any
-
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
-
-from app.models import BookingStatus, SeatStatus
 
 
 class LocationRead(BaseModel):
