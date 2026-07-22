@@ -7,6 +7,7 @@ from samokat.config import Settings
 from samokat.ioc import create_container
 from samokat.logging_config import configure_logging
 
+
 logger = logging.getLogger(__name__)
 
 

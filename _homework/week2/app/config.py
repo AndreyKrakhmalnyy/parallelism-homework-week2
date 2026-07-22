@@ -1,14 +1,7 @@
-<<<<<<< Updated upstream
-DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:7432/postgres"
-REDIS_URL = "redis://localhost:7379/0"
-PAYMENT_API_URL = "http://localhost:9001"
-PROTECTION_API_URL = "http://localhost:9002"
-=======
 from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
->>>>>>> Stashed changes
 BOOKING_TTL_MINUTES = 15
 
 class AppConfig(BaseModel):
@@ -36,19 +29,24 @@ class PostgresConfig(BaseModel):
     
 class PaymentAPIConfig(BaseModel):
     port: int
-    url: str
-    endpoint_url: str
+    base_url: str
+    timeout: float
+    retry_count: int
 
 class ProtectionAPIConfig(BaseModel):
     port: int
-    url: str
-    endpoint_url: str
+    base_url: str
+    timeout: float
+    retry_count: int
+
+class ConnectorsConfig(BaseModel):
+    payment: PaymentAPIConfig
+    protection: ProtectionAPIConfig
 
 class Settings(BaseSettings):
     app: AppConfig
     postgres: PostgresConfig
-    payment_api: PaymentAPIConfig
-    protection_api: ProtectionAPIConfig
+    connectors: ConnectorsConfig
 
     model_config = SettingsConfigDict(
         env_file=".env",

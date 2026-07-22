@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.schemas import EventCreate, EventDashboard, EventRead
+from app.api.schemas1 import EventCreate, EventDashboard, EventRead
 from app.api.dependencies import CurrentUserId
 
 router = APIRouter(prefix="/organizer")

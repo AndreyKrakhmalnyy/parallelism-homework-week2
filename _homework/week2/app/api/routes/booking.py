@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.dependencies import CurrentUserId
-from app.api.schemas import PaymentCompleted, PaymentCreate
+from app.api.schemas.payment import PaymentCompleted, PaymentCreate
 
 router = APIRouter(prefix="/bookings")
 

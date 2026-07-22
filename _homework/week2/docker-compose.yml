@@ -18,12 +18,12 @@ services:
   payment-api:
     build: ./mock_apis/payment
     ports:
-      - "${PAYMENT_API__PORT}:9001"
+      - "${CONNECTORS__PAYMENT__PORT}:9001"
 
   protection-api:
     build: ./mock_apis/protection
     ports:
-      - "${PROTECTION_API__PORT}:9002"
+      - "${CONNECTORS__PROTECTION__PORT}:9002"
 
   redis:
     image: redis:7-alpine
@@ -37,23 +37,6 @@ services:
 
   # app запускаем локально: сначала `uv run alembic upgrade head`
   # потом `uv run uvicorn app.main:app --reload`
-<<<<<<< Updated upstream
-  # app:
-  #   build: .
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - .:/app
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #     payment-api:
-  #       condition: service_started
-  #     protection-api:
-  #       condition: service_started
-  #     redis:
-  #       condition: service_healthy
-=======
   app:
     build: .
     ports:
@@ -82,7 +65,6 @@ services:
         condition: service_healthy
     command: ["sh", "-c", "uv run alembic upgrade head"]
 
->>>>>>> Stashed changes
 
 volumes:
   postgres_data:

@@ -1,11 +1,13 @@
+from dishka import FromDishka
 from fastapi import APIRouter
+from app.domain.services.booking import BookingService
 from app.api.dependencies import CurrentUserId
-from app.api.schemas import (
+from app.api.schemas1 import (
     BookingCreate, 
-    CheckoutResponse, 
     EventRead, 
     EventSeatRead
 )
+from app.api.schemas.booking import CheckoutResponse
 
 router = APIRouter(prefix="/events")
 
@@ -32,6 +34,7 @@ async def prepare_checkout(
     event_id: int,
     payload: BookingCreate,
     user_id: CurrentUserId,
+    booking_service: FromDishka[BookingService]
 ) -> CheckoutResponse:
     """Временно бронирует места за клиентом, возвращает итоговую стоимость
         и возможность страховки."""

@@ -8,6 +8,8 @@ from app.config import Settings, settings
 from app.ioc import create_container
 from app.api.routes import main_router
 
+from dishka.integrations.fastapi import setup_dishka
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,8 +25,10 @@ def create_app(settings: Settings) -> FastAPI:
             "displayRequestDuration": True,
         },
     )
-    create_container(settings)
+    container = create_container(settings)
+    setup_dishka(container=container, app=app)
     app.include_router(main_router)
+    
     return app
 
 app = create_app(settings)

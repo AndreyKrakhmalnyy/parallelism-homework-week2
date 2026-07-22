@@ -1,5 +1,5 @@
-from app.domain.enums import BookingStatus, SeatStatus
 from typing import Any
+from app.domain.enums import SeatStatus
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -87,47 +87,3 @@ class EventDashboard(BaseModel):
     starts_at: datetime
     sales: SalesDashboard
     occupancy: OccupancyDashboard
-
-
-class PaymentQuote(BaseModel):
-    commission: int
-    total: int
-    payment_methods: list[str]
-    expires_at: datetime | None = None
-
-
-class ProtectionQuote(BaseModel):
-    available: bool
-    price: int
-    covered_amount: int
-    description: str | None = None
-
-
-class CheckoutBooking(BaseModel):
-    id: int
-    event_title: str
-    starts_at: datetime
-    seats: list[dict[str, Any]]
-    base_amount: int
-    payment_commission: int
-    protection_price: int | None
-    with_protection: bool
-    reserved_until: datetime
-
-
-class CheckoutResponse(BaseModel):
-    booking: CheckoutBooking
-    payment: PaymentQuote
-    protection: ProtectionQuote | None
-
-
-class PaymentCreate(BaseModel):
-    payment_method: str
-    with_protection: bool = False
-
-
-class PaymentCompleted(BaseModel):
-    booking_id: int
-    status: BookingStatus
-    charged_amount: int
-    transaction_id: str
