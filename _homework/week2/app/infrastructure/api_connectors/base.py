@@ -1,5 +1,6 @@
 import asyncio
 import random
+from re import I
 import httpx
 from httpx import AsyncClient, Response
 from typing import Optional
@@ -30,18 +31,24 @@ class BaseHTTPConnector:
             retry: bool = False,
             **kwargs
         ) -> Response:
-        if retry:
-            for attempt in range(self.retry_count):
-                try:
-                    response = await self.client.request(method, url, **kwargs)
-                except (httpx.NetworkError, httpx.TimeoutException):
-                    if (is_last_attempt := attempt == attempt - 1):
-                        raise
+        if not retry:
+            response = await self.client.request(method, url, **kwargs)
+            response.raise_for_status()
+            return response
+        
+        for attempt in range(self.retry_count):
+            is_last_attempt = attempt == self.retry_count - 1
+            try:
+                response = await self.client.request(method, url, **kwargs)
+            except (httpx.NetworkError, httpx.TimeoutException):
+                if is_last_attempt:
+                    raise
                 await self._exponential_backoff_sleep(attempt)
                 continue
-            if response.status_code not in (409, 500, 503) or is_last_attempt:
-                return response
-            self._exponential_backoff_sleep(attempt)
+            
+        if response.status_code not in (409, 429, 500, 503) or is_last_attempt:
+            return response
+        await self._exponential_backoff_sleep(attempt)
 
     async def _exponential_backoff_sleep(self, attempt: int) -> None:
         delay = 0.5 ** (attempt + 1)  

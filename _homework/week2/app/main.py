@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.infrastructure.postgres.manager import DatabaseManager
 from app.add_event_data import add_event_data_to_db
 from app.config import Settings, settings
 from app.ioc import create_container
@@ -13,7 +14,11 @@ from dishka.integrations.fastapi import setup_dishka
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await add_event_data_to_db()
+    container = app.state.dishka_container
+    
+    async with container() as request_container:
+        db_manager = await request_container.get(DatabaseManager)
+        await add_event_data_to_db(db_manager)
     yield
 
 def create_app(settings: Settings) -> FastAPI:

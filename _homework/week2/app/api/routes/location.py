@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from app.api.schemas1 import LocationDetail, LocationRead, SeatRead
+from app.api.schemas.location import LocationDetail, LocationRead
+from app.api.schemas.seat import SeatRead
 
 router = APIRouter(prefix="/locations")
 

@@ -7,7 +7,8 @@ class PaymentConnector(BaseHTTPConnector):
         response = await self.request(
             "POST", 
             "/payment/calculate",
-            json=payload.model_dump()
+            json=payload.model_dump(mode="json"),
+            retry=True
         )
         response.raise_for_status()
         return PaymentQuoteOut.model_validate(response.json())
@@ -16,7 +17,7 @@ class PaymentConnector(BaseHTTPConnector):
         response = await self.request(
             "POST",
             "/payment/pay",
-            json=payload.model_dump()
+            json=payload.model_dump(mode="json")
         )
         response.raise_for_status()
         return PaymentPayOut.model_validate(response.json())

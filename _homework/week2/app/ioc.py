@@ -3,13 +3,15 @@ from app.infrastructure.api_connectors.external.protection import ProtectionConn
 from app.infrastructure.api_connectors.external.payment import PaymentConnector
 from app.infrastructure.postgres.repositories.seat import SeatRepository
 from app.infrastructure.postgres.repositories.event import EventRepository
+from app.domain.services.booking import BookingService
+from app.domain.services.event import EventService
 from app.config import (
     ConnectorsConfig,
-    PostgresConfig, 
+    PostgresConfig,
     Settings
 )
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
-from app.infrastructure.postgres.manager import DatabaseManager
+from app.infrastructure.postgres.manager import DatabaseManager, PostgresClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -32,13 +34,21 @@ class ConfigProvider(Provider):
     
 class DatabaseProvider(Provider):
     @provide(scope=Scope.APP)
-    def get_db_manager(self) -> DatabaseManager:
-        return DatabaseManager()
+    async def get_postgres_client(self, config: PostgresConfig) -> AsyncIterator[PostgresClient]:
+        client = PostgresClient(config)
+
+        yield client
+
+        await client.close()
 
     @provide(scope=Scope.REQUEST)
-    async def get_session(self, manager: DatabaseManager) -> AsyncIterator[AsyncSession]:
-        async with manager.session() as session:
-            yield session
+    async def get_db_manager(self, client: PostgresClient) -> AsyncIterator[DatabaseManager]:
+        async with client.session() as db:
+            yield db
+
+    @provide(scope=Scope.REQUEST)
+    def get_session(self, db: DatabaseManager) -> AsyncSession:
+        return db.session
 
 class RepositoryProvider(Provider):
     scope = Scope.REQUEST
@@ -61,10 +71,10 @@ class ConnectorProvider(Provider):
         connector = PaymentConnector(
             base_url=payment.base_url,
             timeout=payment.timeout,
-            retry=payment.retry
+            retry_count=payment.retry_count
         )
         yield connector
-        connector.close_connection()
+        await connector.close_connection()
 
     @provide
     async def get_protection_connector(self, connectors_conf: ConnectorsConfig) -> AsyncIterator[ProtectionConnector]:
@@ -72,15 +82,33 @@ class ConnectorProvider(Provider):
         connector = ProtectionConnector(
             base_url=protection.base_url,
             timeout=protection.timeout,
-            retry=protection.retry
+            retry_count=protection.retry_count
         )
         yield connector
-        connector.close_connection()
+        await connector.close_connection()
+
+class ServiceProvider(Provider):
+    scope = Scope.REQUEST
+
+    @provide
+    def get_booking_service(
+        self,
+        db: DatabaseManager,
+        payment_connector: PaymentConnector,
+        protection_connector: ProtectionConnector,
+    ) -> BookingService:
+        return BookingService(db, payment_connector, protection_connector)
+
+    @provide
+    def get_event_service(self, db: DatabaseManager) -> EventService:
+        return EventService(db)
+
 
 def create_container(settings: Settings) -> AsyncContainer:
     return make_async_container(
         ConfigProvider(settings),
         DatabaseProvider(),
         RepositoryProvider(),
-        ConnectorProvider()
+        ConnectorProvider(),
+        ServiceProvider(),
     )

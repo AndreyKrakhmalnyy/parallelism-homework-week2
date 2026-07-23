@@ -1,5 +1,5 @@
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from app.api.schemas.payment import PaymentQuoteOut
 from app.api.schemas.protection import ProtectionQuoteOut
@@ -20,3 +20,6 @@ class CheckoutResponse(BaseModel):
     booking: CheckoutBooking
     payment: PaymentQuoteOut
     protection: ProtectionQuoteOut | None
+
+class BookingCreate(BaseModel):
+    seat_ids: list[int] = Field(min_length=1)

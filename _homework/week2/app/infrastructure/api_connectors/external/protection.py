@@ -7,7 +7,8 @@ class ProtectionConnector(BaseHTTPConnector):
         response = await self.request(
             "POST", 
             "/protection/calculate",
-            json=payload.model_dump()
+            json=payload.model_dump(mode="json"),
+            retry=True
         )
         response.raise_for_status()
         return ProtectionQuoteOut.model_validate(response.json())
