@@ -15,11 +15,12 @@ from dishka.integrations.fastapi import setup_dishka
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     container = app.state.dishka_container
-    
+
     async with container() as request_container:
         db_manager = await request_container.get(DatabaseManager)
         await add_event_data_to_db(db_manager)
     yield
+    await container.close()
 
 def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(

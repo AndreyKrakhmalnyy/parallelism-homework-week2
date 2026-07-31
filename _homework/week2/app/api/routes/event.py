@@ -22,19 +22,23 @@ async def list_events(event_service: FromDishka[EventService]) -> list[EventRead
 
 
 
-@router.get("/events/{event_id}")
-async def get_event(event_id: int) -> EventRead:
+@router.get("/{event_id}", response_model=EventRead, status_code=200)
+async def get_event(event_id: int, event_service: FromDishka[EventService]) -> EventRead:
     """Возвращает описание мероприятия."""
-    ...
+    try:
+        event = await event_service.get_event_by_id(event_id)
+    except DomainError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e)) from None
+    return event
 
 
-@router.get("/events/{event_id}/seats")
+@router.get("/{event_id}/seats")
 async def list_event_seats(event_id: int) -> list[EventSeatRead]:
     """Возвращает места на мероприятии с ценами и статусами."""
     ...
 
 
-@router.post("/events/{event_id}/checkout", response_model=CheckoutResponse, status_code=201)
+@router.post("/{event_id}/checkout", response_model=CheckoutResponse, status_code=201)
 async def prepare_checkout(
     event_id: int,
     payload: BookingCreate,

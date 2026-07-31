@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -43,10 +44,26 @@ class ConnectorsConfig(BaseModel):
     payment: PaymentAPIConfig
     protection: ProtectionAPIConfig
 
+class RedisConfig(BaseModel):
+    port: int
+    host: str
+    password: Optional[SecretStr] = None
+    database: int = 0
+
+    @property
+    def url(self):
+        if self.password is None:
+            return f"redis://{self.host}:{self.port}/{self.database}"
+        
+        password = self.password.get_secret_value()
+        return f"redis://{password}@{self.host}:{self.port}/{self.database}"
+
+
 class Settings(BaseSettings):
     app: AppConfig
     postgres: PostgresConfig
     connectors: ConnectorsConfig
+    redis: RedisConfig
 
     model_config = SettingsConfigDict(
         env_file=".env",
