@@ -25,7 +25,11 @@ async def list_events(event_service: FromDishka[EventService]) -> list[EventRead
 @router.get("/{event_id}", response_model=EventRead, status_code=200)
 async def get_event(event_id: int, event_service: FromDishka[EventService]) -> EventRead:
     """Возвращает описание мероприятия."""
-    ...
+    try:
+        event = await event_service.get_event_by_id(event_id)
+    except DomainError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e)) from None
+    return event
 
 
 @router.get("/{event_id}/seats")
