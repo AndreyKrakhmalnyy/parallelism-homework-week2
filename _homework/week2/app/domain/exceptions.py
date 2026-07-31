@@ -24,3 +24,9 @@ class PaymentNotAvailableError(DomainError):
     def __init__(self, event_id: int) -> None:
         self.detail = f"Payment for event with ID={event_id} is not available. Please, try later."
         super().__init__(self.detail)
+
+class EventCacheTimeoutError(DomainError):
+    status_code = 503
+    def __init__(self, event_id: int) -> None:
+        self.detail = f"Event with event_id={event_id} is temporarily unavailable. Please, try later."
+        super().__init__(self.detail)

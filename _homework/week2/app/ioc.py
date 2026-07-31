@@ -1,4 +1,6 @@
 from typing import AsyncIterator
+from app.infrastructure.redis.cache import CacheManager
+from app.infrastructure.redis.manager import RedisManager, create_redis_manager
 from app.infrastructure.api_connectors.external.protection import ProtectionConnector
 from app.infrastructure.api_connectors.external.payment import PaymentConnector
 from app.infrastructure.postgres.repositories.seat import SeatRepository
@@ -8,6 +10,7 @@ from app.domain.services.event import EventService
 from app.config import (
     ConnectorsConfig,
     PostgresConfig,
+    RedisConfig,
     Settings
 )
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
@@ -31,7 +34,11 @@ class ConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def get_connectors_config(self, settings: Settings) -> ConnectorsConfig:
         return settings.connectors
-    
+
+    @provide(scope=Scope.APP)
+    def get_redis_config(self, settings: Settings) -> RedisConfig:
+        return settings.redis
+
 class DatabaseProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_postgres_client(self, config: PostgresConfig) -> AsyncIterator[PostgresClient]:
@@ -66,8 +73,8 @@ class ConnectorProvider(Provider):
     scope = Scope.APP
 
     @provide
-    async def get_payment_connector(self, connectors_conf: ConnectorsConfig) -> AsyncIterator[PaymentConnector]:
-        payment = connectors_conf.payment
+    async def get_payment_connector(self, config: ConnectorsConfig) -> AsyncIterator[PaymentConnector]:
+        payment = config.payment
         connector = PaymentConnector(
             base_url=payment.base_url,
             timeout=payment.timeout,
@@ -77,8 +84,8 @@ class ConnectorProvider(Provider):
         await connector.close_connection()
 
     @provide
-    async def get_protection_connector(self, connectors_conf: ConnectorsConfig) -> AsyncIterator[ProtectionConnector]:
-        protection = connectors_conf.protection
+    async def get_protection_connector(self, config: ConnectorsConfig) -> AsyncIterator[ProtectionConnector]:
+        protection = config.protection
         connector = ProtectionConnector(
             base_url=protection.base_url,
             timeout=protection.timeout,
@@ -100,9 +107,21 @@ class ServiceProvider(Provider):
         return BookingService(db, payment_connector, protection_connector)
 
     @provide
-    def get_event_service(self, db: DatabaseManager) -> EventService:
-        return EventService(db)
+    def get_event_service(self, db: DatabaseManager, cache: CacheManager) -> EventService:
+        return EventService(db, cache)
+    
 
+class RedisProvider(Provider):
+    @provide(scope=Scope.APP)
+    async def get_redis_manager(self, config: RedisConfig) -> AsyncIterator[RedisManager]:
+        redis = create_redis_manager(config)
+        yield redis
+        await redis.close()
+        
+class CacheProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_cache_manager(self, redis_manager: RedisManager) -> CacheManager:
+        return CacheManager(redis_manager)
 
 def create_container(settings: Settings) -> AsyncContainer:
     return make_async_container(
@@ -111,4 +130,6 @@ def create_container(settings: Settings) -> AsyncContainer:
         RepositoryProvider(),
         ConnectorProvider(),
         ServiceProvider(),
+        RedisProvider(),
+        CacheProvider()
     )

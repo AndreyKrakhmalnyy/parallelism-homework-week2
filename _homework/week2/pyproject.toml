@@ -5,6 +5,7 @@ description = ""
 requires-python = ">=3.13"
 dependencies = [
     "alembic==1.16.2",
+    "clickhouse-connect>=1.6.0",
     "dishka>=1.10.1",
     "fastapi==0.116.1",
     "greenlet==3.2.3",
@@ -12,6 +13,7 @@ dependencies = [
     "psycopg[binary,pool]==3.2.9",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
+    "redis>=8.0.1",
     "sqlalchemy==2.0.41",
     "uvicorn[standard]==0.35.0",
 ]
