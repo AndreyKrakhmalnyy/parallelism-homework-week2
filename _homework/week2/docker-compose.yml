@@ -2,13 +2,13 @@ services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES__DB}
+      POSTGRES_USER: ${POSTGRES__USER}
+      POSTGRES_PASSWORD: ${POSTGRES__PASSWORD}
     ports:
-      - "7432:5432"
+      - "${POSTGRES__PORT}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES__USER} -d ${POSTGRES__DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -18,12 +18,12 @@ services:
   payment-api:
     build: ./mock_apis/payment
     ports:
-      - "9001:9001"
+      - "${CONNECTORS__PAYMENT__PORT}:9001"
 
   protection-api:
     build: ./mock_apis/protection
     ports:
-      - "9002:9002"
+      - "${CONNECTORS__PROTECTION__PORT}:9002"
 
   redis:
     image: redis:7-alpine
@@ -37,21 +37,34 @@ services:
 
   # app запускаем локально: сначала `uv run alembic upgrade head`
   # потом `uv run uvicorn app.main:app --reload`
-  # app:
-  #   build: .
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - .:/app
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #     payment-api:
-  #       condition: service_started
-  #     protection-api:
-  #       condition: service_started
-  #     redis:
-  #       condition: service_healthy
+  app:
+    build: .
+    ports:
+      - "${APP__PORT}:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      payment-api:
+        condition: service_started
+      protection-api:
+        condition: service_started
+      migration:
+        condition: service_completed_successfully
+    command: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host ${APP__HOST} --port ${APP__PORT} --reload"]
+
+  migration:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "uv run alembic upgrade head"]
+
 
 volumes:
   postgres_data:
