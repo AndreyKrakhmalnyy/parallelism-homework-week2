@@ -1,10 +1,9 @@
 from asyncio import TaskGroup
 from app.infrastructure.redis.cache import CacheManager
 from app.infrastructure.postgres.dto import OccupancySummary, SalesSummary
-from app.domain.exceptions import EventCacheTimeoutError, EventNotFoundError
+from app.domain.exceptions import EventNotFoundError
 from app.infrastructure.postgres.manager import DatabaseManager
 from app.api.schemas.event import EventDashboard, EventRead, OccupancyDashboard, SalesDashboard
-from redis.exceptions import LockError
 
 
 class EventService:
@@ -15,14 +14,6 @@ class EventService:
     async def get_list_events(self) -> list[EventRead]:
         result = await self.db_manager.event_repo.get_list_events()
         return [EventRead.model_validate(event) for event in result]
-
-    async def get_event_by_id(self, event_id: int) -> EventRead:
-        return await self.cache_manager.get_or_set_with_lock(
-            cache_key=f"event:{event_id}",
-            dto=EventRead,
-            fetch=lambda: self.db_manager.event_repo.get_event_by_id(event_id=event_id),
-            error_cls=EventCacheTimeoutError(event_id=event_id)
-        )
 
     async def get_event_stats(self, event_id: int, organizer_id: int) -> EventDashboard:
         event = await self.db_manager.event_repo.get_event_by_organizer_id(event_id, organizer_id)
