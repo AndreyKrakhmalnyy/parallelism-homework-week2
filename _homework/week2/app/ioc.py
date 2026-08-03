@@ -1,5 +1,6 @@
+import asyncio
 from typing import AsyncIterator
-from app.infrastructure.redis.cache import CacheManager
+from app.domain.queues import EventViewQueue
 from app.infrastructure.redis.manager import RedisManager, create_redis_manager
 from app.infrastructure.api_connectors.external.protection import ProtectionConnector
 from app.infrastructure.api_connectors.external.payment import PaymentConnector
@@ -107,8 +108,8 @@ class ServiceProvider(Provider):
         return BookingService(db, payment_connector, protection_connector)
 
     @provide
-    def get_event_service(self, db: DatabaseManager, cache: CacheManager) -> EventService:
-        return EventService(db, cache)
+    def get_event_service(self, db: DatabaseManager, redis: RedisManager, event_view_queue: EventViewQueue) -> EventService:
+        return EventService(db, redis, event_view_queue)
     
 
 class RedisProvider(Provider):
@@ -118,11 +119,13 @@ class RedisProvider(Provider):
         yield redis
         await redis.close()
         
-class CacheProvider(Provider):
+    
+class QueueProvider(Provider):
     @provide(scope=Scope.APP)
-    def get_cache_manager(self, redis_manager: RedisManager) -> CacheManager:
-        return CacheManager(redis_manager)
-
+    def get_event_view_queue(self) -> EventViewQueue:
+        return EventViewQueue(asyncio.Queue())
+    
+    
 def create_container(settings: Settings) -> AsyncContainer:
     return make_async_container(
         ConfigProvider(settings),
@@ -131,5 +134,5 @@ def create_container(settings: Settings) -> AsyncContainer:
         ConnectorProvider(),
         ServiceProvider(),
         RedisProvider(),
-        CacheProvider()
+        QueueProvider(),
     )
