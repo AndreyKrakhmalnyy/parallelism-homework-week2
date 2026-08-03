@@ -39,9 +39,7 @@ class EventService:
         is_setted = await self.redis_manager.client.set(
             name=key, value=str(event_id), nx=True, ex=self.EVENT_VIEW_UNIQ_CACHE
         )  # 5 min
-        print(is_setted)
         if is_setted:
-            print("КЛЮЧ БЫЛ УСТАНОВЛЕН В КЭШ")
             await self.ev_queue.put(event_id)
 
     async def get_event_stats(self, event_id: int, organizer_id: int) -> EventDashboard:
