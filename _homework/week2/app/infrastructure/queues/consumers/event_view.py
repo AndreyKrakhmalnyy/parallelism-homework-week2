@@ -4,38 +4,37 @@ import logging
 import time
 
 from dishka import AsyncContainer
+from app.infrastructure.queues.types import EventViewQueue
+from app.infrastructure.queues.consumers.base import BaseQueueConsumer
 from app.infrastructure.postgres.models import EventView
 from app.infrastructure.postgres.manager import DatabaseManager
-from app.domain.queues import EventViewQueue
 
 logger = logging.getLogger(__name__)
 
 
-class EventViewWorker:
+class EventViewQueueConsumer(BaseQueueConsumer):
     FLUSH_TIMEOUT = 5.0  # таймаут для очереди
     FLUSH_COUNT = 10  # макс число мероприятий для пуша в бд
 
-    def __init__(
-        self, event_view_queue: EventViewQueue, container: AsyncContainer
-    ) -> None:
-        self.ev_queue = event_view_queue
+    def __init__(self, queue: EventViewQueue, container: AsyncContainer) -> None:
+        super().__init__(queue)
         self.container = container
         self.agg_store = defaultdict(int)
 
-    async def run(self) -> None:
+    async def _run(self) -> None:
         deadline = time.monotonic() + self.FLUSH_TIMEOUT
 
         try:
             while True:
                 try:
                     event_id = await asyncio.wait_for(
-                        self.ev_queue.get(),
+                        self.queue.get(),
                         timeout=max(0.0, deadline - time.monotonic()),
                     )
                     self.agg_store[event_id] += 1
                 except asyncio.TimeoutError:
                     pass
-                
+
                 if (
                     sum(self.agg_store.values()) >= self.FLUSH_COUNT
                     or time.monotonic() >= deadline

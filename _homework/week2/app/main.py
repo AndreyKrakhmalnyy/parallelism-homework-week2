@@ -1,20 +1,20 @@
-import asyncio
-from collections import defaultdict
+import logging
 import uvicorn
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.workers.event_view import EventViewWorker
+from app.infrastructure.queues.consumers.event_view import EventViewQueueConsumer
+from app.logging_config import configure_logging
 from app.infrastructure.postgres.manager import DatabaseManager
 from app.add_event_data import add_event_data_to_db
 from app.config import Settings, settings
-from app.domain.queues import EventViewQueue
 from app.ioc import create_container
 from app.api.routes import main_router
 
 from dishka.integrations.fastapi import setup_dishka
 
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,17 +24,12 @@ async def lifespan(app: FastAPI):
         db_manager = await request_container.get(DatabaseManager)
         await add_event_data_to_db(db_manager)
 
-    ev_queue = await container.get(EventViewQueue)
-    ev_worker = EventViewWorker(ev_queue, container)
-    ev_task = asyncio.create_task(ev_worker.run())
+    event_view_consumer = await container.get(EventViewQueueConsumer)
+    event_view_consumer.start()
 
     yield
 
-    ev_task.cancel()
-    try:
-        await ev_task
-    except asyncio.CancelledError:
-        pass
+    await event_view_consumer.stop()
     await container.close()
 
 def create_app(settings: Settings) -> FastAPI:
@@ -52,6 +47,12 @@ def create_app(settings: Settings) -> FastAPI:
     
     return app
 
+configure_logging()
+logger.info(
+    "Afisha app configured: host=%s port=%s",
+    settings.app.host,
+    settings.app.port,
+)
 app = create_app(settings)
 
 if __name__ == "__main__":

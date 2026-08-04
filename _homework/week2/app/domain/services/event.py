@@ -1,5 +1,4 @@
 from asyncio import TaskGroup
-from app.domain.queues import EventViewQueue
 from app.infrastructure.redis.manager import RedisManager
 from app.infrastructure.postgres.dto import OccupancySummary, SalesSummary
 from app.domain.exceptions import EventCacheTimeoutError, EventNotFoundError
@@ -9,17 +8,14 @@ from app.api.schemas.event import EventDashboard, EventRead, OccupancyDashboard,
 
 class EventService:
     EVENT_CACHE = 30 * 60 # 30 min
-    EVENT_VIEW_UNIQ_CACHE = 5 * 60 # 5 min
-
+    
     def __init__(
             self, 
             db_manager: DatabaseManager, 
             redis_manager: RedisManager,
-            event_view_queue: EventViewQueue
         ) -> None:
         self.db_manager = db_manager
         self.redis_manager = redis_manager
-        self.ev_queue = event_view_queue
 
     async def get_list_events(self) -> list[EventRead]:
         result = await self.db_manager.event_repo.get_list_events()
@@ -33,14 +29,6 @@ class EventService:
             fetch=lambda: self.db_manager.event_repo.get_event_by_id(event_id=event_id),
             error_cls=EventCacheTimeoutError(event_id=event_id),
         )
-
-    async def record_view(self, event_id: int, ip_address: str) -> None:
-        key = f"event_view:{event_id}:{ip_address}"
-        is_setted = await self.redis_manager.client.set(
-            name=key, value=str(event_id), nx=True, ex=self.EVENT_VIEW_UNIQ_CACHE
-        )  # 5 min
-        if is_setted:
-            await self.ev_queue.put(event_id)
 
     async def get_event_stats(self, event_id: int, organizer_id: int) -> EventDashboard:
         event = await self.db_manager.event_repo.get_event_by_organizer_id(event_id, organizer_id)
