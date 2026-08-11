@@ -94,3 +94,22 @@ class Booking(BaseDBModel):
     )
     reserved_until: Mapped[datetime] = mapped_column(DateTime(), index=True)
 
+
+class EventView(BaseDBModel):
+    """Количество просмотров мероприятия."""
+
+    __tablename__ = "event_views"
+
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id"), primary_key=True)
+    views_count: Mapped[int] = mapped_column(default=0, server_default="0")
+
+
+# Что нужно для задания 3
+# 1 dto для event views + метод для массовой вставки одним запросом
+# 2 вспомогательный метод в сервисе ивентов, который при каждом запросе в бд и реквеста
+#      берет ip клиента и идет в кэш для проверки уникальности просмотра, а именно
+# 2.1 если данные есть и время последнего просмотра меньше 5 мин, то ничего не делать
+# 2.2 если данные есть и времени прошло больше 5 минут, то обновлять время и обновлять данные
+#     о событии в очереди (maxsize=100)
+# при накоплении 100 событий в очереди
+# разобрать 3 задачу
