@@ -18,7 +18,6 @@ class BaseQueueConsumer(ABC):
 
         try:
             await self._task
-            
         except asyncio.CancelledError:
             pass
 

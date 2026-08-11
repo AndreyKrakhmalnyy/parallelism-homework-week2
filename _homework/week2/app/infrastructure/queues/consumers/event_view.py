@@ -4,6 +4,7 @@ import logging
 import time
 
 from dishka import AsyncContainer
+from app.infrastructure.exceptions import EventViewConsumeringError
 from app.infrastructure.queues.types import EventViewQueue
 from app.infrastructure.queues.consumers.base import BaseQueueConsumer
 from app.infrastructure.postgres.models import EventView
@@ -43,18 +44,25 @@ class EventViewQueueConsumer(BaseQueueConsumer):
                     deadline = time.monotonic() + self.FLUSH_TIMEOUT
 
         except asyncio.CancelledError:
-            await self._flush()
+            try:
+                await self._flush()
+            except EventViewConsumeringError as e:
+                logger.error(str(e))
+            raise
 
     async def _flush(self) -> None:
         if not self.agg_store:
             return
-        async with self.container() as request_container:
-            db_manager = await request_container.get(DatabaseManager)
-            await db_manager.event_repo.add_event_views_bulk(
-                [
-                    EventView(event_id=event_id, views_count=views_count)
-                    for event_id, views_count in self.agg_store.items()
-                ]
-            )
-            await db_manager.commit()
+        try:
+            async with self.container() as request_container:
+                db_manager = await request_container.get(DatabaseManager)
+                await db_manager.event_repo.add_event_views_bulk(
+                    [
+                        EventView(event_id=event_id, views_count=views_count)
+                        for event_id, views_count in self.agg_store.items()
+                    ]
+                )
+                await db_manager.commit()
+        except Exception as e:
+            raise EventViewConsumeringError(str(e)) from e
         self.agg_store.clear()
