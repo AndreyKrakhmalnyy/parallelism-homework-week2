@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from app.api.dependencies import CurrentUserId
 from app.api.schemas.payment import PaymentCompleted, PaymentCreate
 
-router = APIRouter(prefix="/bookings")
+router = APIRouter(prefix="/bookings", tags=["Бронирования"])
 
 
 @router.post("/{booking_id}/pay")

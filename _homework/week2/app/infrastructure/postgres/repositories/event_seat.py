@@ -33,3 +33,8 @@ class EventSeatRepository(BaseRepository):
             reserved=counts.get(SeatStatus.reserved, 0),
             sold=counts.get(SeatStatus.sold, 0),
         )
+    
+    async def get_event_seats_by_booking_id(self, booking_id: int) -> list[EventSeat]:
+        query = select(EventSeat).where(EventSeat.booking_id == booking_id)
+        orm_data = await self.session.execute(query)
+        return list(orm_data.scalars().all())

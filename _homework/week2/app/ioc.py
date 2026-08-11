@@ -1,5 +1,7 @@
-from typing import AsyncIterator
-from app.infrastructure.redis.cache import CacheManager
+from pathlib import Path
+from typing import AsyncIterator, Union
+from app.reports.pdf_reports import generate_event_dashboard_pdf
+from app.api.schemas.event import EventDashboard
 from app.infrastructure.redis.manager import RedisManager, create_redis_manager
 from app.infrastructure.api_connectors.external.protection import ProtectionConnector
 from app.infrastructure.api_connectors.external.payment import PaymentConnector
@@ -107,8 +109,8 @@ class ServiceProvider(Provider):
         return BookingService(db, payment_connector, protection_connector)
 
     @provide
-    def get_event_service(self, db: DatabaseManager, cache: CacheManager) -> EventService:
-        return EventService(db, cache)
+    def get_event_service(self, db: DatabaseManager) -> EventService:
+        return EventService(db)
     
 
 class RedisProvider(Provider):
@@ -117,11 +119,7 @@ class RedisProvider(Provider):
         redis = create_redis_manager(config)
         yield redis
         await redis.close()
-        
-class CacheProvider(Provider):
-    @provide(scope=Scope.APP)
-    def get_cache_manager(self, redis_manager: RedisManager) -> CacheManager:
-        return CacheManager(redis_manager)
+
 
 def create_container(settings: Settings) -> AsyncContainer:
     return make_async_container(
@@ -131,5 +129,4 @@ def create_container(settings: Settings) -> AsyncContainer:
         ConnectorProvider(),
         ServiceProvider(),
         RedisProvider(),
-        CacheProvider()
     )

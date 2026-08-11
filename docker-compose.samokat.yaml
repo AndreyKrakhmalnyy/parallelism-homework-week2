@@ -169,26 +169,26 @@ services:
    ports:
      - "5173:5173"
 
-  # samokat:
-  #   build:
-  #     context: ./samokat
-  #   environment:
-  #     <<: *samokat_env
-  #   depends_on:
-  #     samokat-migrations:
-  #       condition: service_completed_successfully
-  #     samokat-redis:
-  #       condition: service_started
-  #     samokat-clickhouse-init:
-  #       condition: service_completed_successfully
-  #     address-api:
-  #       condition: service_started
-  #     darkstore-api:
-  #       condition: service_started
-  #     delivery-api:
-  #       condition: service_started
-  #   ports:
-  #     - "8000:8000"
+  samokat:
+    build:
+      context: ./samokat
+    environment:
+      <<: *samokat_env
+    depends_on:
+      samokat-migrations:
+        condition: service_completed_successfully
+      samokat-redis:
+        condition: service_started
+      samokat-clickhouse-init:
+        condition: service_completed_successfully
+      address-api:
+        condition: service_started
+      darkstore-api:
+        condition: service_started
+      delivery-api:
+        condition: service_started
+    ports:
+      - "8000:8000"
 
 volumes:
   samokat_postgres_data:
