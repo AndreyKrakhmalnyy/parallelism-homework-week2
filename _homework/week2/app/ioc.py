@@ -1,7 +1,8 @@
-from pathlib import Path
-from typing import AsyncIterator, Union
-from app.reports.pdf_reports import generate_event_dashboard_pdf
-from app.api.schemas.event import EventDashboard
+import asyncio
+from typing import AsyncIterator
+from app.infrastructure.queues.producers.event import EventQueueProducer
+from app.infrastructure.queues.types import EventViewQueue
+from app.infrastructure.queues.consumers.event_view import EventViewQueueConsumer
 from app.infrastructure.redis.manager import RedisManager, create_redis_manager
 from app.infrastructure.api_connectors.external.protection import ProtectionConnector
 from app.infrastructure.api_connectors.external.payment import PaymentConnector
@@ -109,8 +110,8 @@ class ServiceProvider(Provider):
         return BookingService(db, payment_connector, protection_connector)
 
     @provide
-    def get_event_service(self, db: DatabaseManager) -> EventService:
-        return EventService(db)
+    def get_event_service(self, db: DatabaseManager, redis: RedisManager) -> EventService:
+        return EventService(db, redis)
     
 
 class RedisProvider(Provider):
@@ -120,6 +121,20 @@ class RedisProvider(Provider):
         yield redis
         await redis.close()
 
+class QueueProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_event_view_queue(self) -> EventViewQueue:
+        return EventViewQueue(asyncio.Queue())
+
+class QueueProduceProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_event_queue_producer(self, queue: EventViewQueue, redis_manager: RedisManager) -> EventQueueProducer:
+        return EventQueueProducer(queue, redis_manager)
+    
+class QueueConsumeProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_event_view_queue_consumer(self, queue: EventViewQueue, container: AsyncContainer) -> EventViewQueueConsumer:
+        return EventViewQueueConsumer(queue, container)
 
 def create_container(settings: Settings) -> AsyncContainer:
     return make_async_container(
@@ -129,4 +144,7 @@ def create_container(settings: Settings) -> AsyncContainer:
         ConnectorProvider(),
         ServiceProvider(),
         RedisProvider(),
+        QueueProvider(),
+        QueueProduceProvider(),
+        QueueConsumeProvider()
     )

@@ -1,7 +1,8 @@
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from app.domain.services.event import EventService
+from app.infrastructure.queues.producers.event import EventQueueProducer
 from app.domain.exceptions import DomainError
 from app.domain.services.booking import BookingService
 from app.api.dependencies import CurrentUserId
@@ -23,9 +24,21 @@ async def list_events(event_service: FromDishka[EventService]) -> list[EventRead
 
 
 @router.get("/{event_id}", response_model=EventRead, status_code=200)
-async def get_event(event_id: int, event_service: FromDishka[EventService]) -> EventRead:
+async def get_event(
+    event_id: int,
+    event_service: FromDishka[EventService],
+    event_queue_producer: FromDishka[EventQueueProducer],
+    request: Request,
+) -> EventRead:
     """Возвращает описание мероприятия."""
-    ...
+    try:
+        event = await event_service.get_event_by_id(event_id)
+    except DomainError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e)) from None
+
+    if request.client:
+        await event_queue_producer.record_view(event_id, request.client.host)
+    return event
 
 
 @router.get("/{event_id}/seats")
