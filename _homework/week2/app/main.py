@@ -9,7 +9,7 @@ from app.logging_config import configure_logging
 from app.infrastructure.postgres.manager import DatabaseManager
 from app.add_event_data import add_event_data_to_db
 from app.config import Settings, settings
-from app.ioc import create_container
+from app.container import create_container
 from app.api.routes import main_router
 
 from dishka.integrations.fastapi import setup_dishka

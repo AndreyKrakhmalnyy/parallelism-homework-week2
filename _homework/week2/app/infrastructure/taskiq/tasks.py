@@ -1,17 +1,16 @@
-import asyncio
 from datetime import timedelta
 import logging
 
-from app.domain.enums import BookingStatus
-from app.infrastructure.postgres.manager import DatabaseManager
+import httpx
+from dishka import FromDishka
+from dishka.integrations.taskiq import inject
+
 from app.api.schemas.protection import ProtectionQuoteIn
 from app.infrastructure.api_connectors.external.protection import ProtectionConnector
 from app.domain.services.booking import BookingService
-from app.ioc import create_container
 from app.reports.pdf_reports import PDF_REPORT_PATH, generate_event_dashboard_pdf
 from app.api.schemas.event import EventDashboard
-from app.infrastructure.taskiq.app import cpu_broker, asyncio_broker
-from app.config import settings
+from app.infrastructure.taskiq.brokers import cpu_broker, asyncio_broker
 
 logger = logging.getLogger(__name__)
 
@@ -40,32 +39,29 @@ async def generate_event_dashboard_report(event_id: int, event_dashboard: EventD
         }
     ],
 )
-async def cancel_expired_bookings() -> None:
-    container = create_container(settings)
-    async with container() as app_container:
-        booking_service = await app_container.get(BookingService)
-        logger.info("Booking cancelling started")
-        task_result = await booking_service.cancel_expired_bookings()
-        logger.info(f"Booking cancelling finished, cancelled {task_result.get("deleted_count")} booking")
+@inject
+async def cancel_expired_bookings(booking_service: FromDishka[BookingService]) -> None:
+    logger.info("Booking cancelling started")
+    task_result = await booking_service.cancel_expired_bookings()
+    logger.info(f"Booking cancelling finished, cancelled {task_result.get("deleted_count")} booking")
 
 
 @asyncio_broker.task(
-    task_name="get_protection_price",
+    task_name="sync_protection_price",
     max_retries=2,
     retry_on_error=True,
 )
-async def get_protection_price(payload: ProtectionQuoteIn) -> None:
-    container = create_container(settings)
-    async with container() as app_container:
-        protection_connector = await app_container.get(ProtectionConnector)
-        db_manager = await app_container.get(DatabaseManager)
-
+@inject
+async def sync_protection_price(
+    payload: ProtectionQuoteIn,
+    protection_connector: FromDishka[ProtectionConnector],
+    booking_service: FromDishka[BookingService],
+) -> None:
+    try:
         result = await protection_connector.calculate(payload)
+    except (httpx.NetworkError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
+        logger.error("Protection API request error: %s", str(e))
+        raise
 
-        if result:
-            booking = await db_manager.booking_repo.get_by_id(payload.booking_id)
-
-            if booking and booking.status == BookingStatus.pending_payment:
-                booking.protection_price = result.price
-                booking.with_protection = True
-                db_manager.session.commit()
+    if result:
+        await booking_service.set_protection_price(payload.booking_id, result)

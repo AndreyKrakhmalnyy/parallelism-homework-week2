@@ -1,5 +1,7 @@
 import asyncio
 from typing import AsyncIterator
+from app.domain.interfaces.protection import ProtectionPriceProcessor
+from app.infrastructure.taskiq.dispatcher import ProtectionPriceTaskDispatcher
 from app.infrastructure.queues.producers.event import EventQueueProducer
 from app.infrastructure.queues.types import EventViewQueue
 from app.infrastructure.queues.consumers.event_view import EventViewQueueConsumer
@@ -16,7 +18,7 @@ from app.config import (
     RedisConfig,
     Settings
 )
-from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
+from dishka import AsyncContainer, Provider, Scope, provide
 from app.infrastructure.postgres.manager import DatabaseManager, PostgresClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -106,8 +108,9 @@ class ServiceProvider(Provider):
         db: DatabaseManager,
         payment_connector: PaymentConnector,
         protection_connector: ProtectionConnector,
+        protection_price_processor: ProtectionPriceProcessor
     ) -> BookingService:
-        return BookingService(db, payment_connector, protection_connector)
+        return BookingService(db, payment_connector, protection_connector, protection_price_processor)
 
     @provide
     def get_event_service(self, db: DatabaseManager, redis: RedisManager) -> EventService:
@@ -135,16 +138,8 @@ class QueueConsumeProvider(Provider):
     @provide(scope=Scope.APP)
     def get_event_view_queue_consumer(self, queue: EventViewQueue, container: AsyncContainer) -> EventViewQueueConsumer:
         return EventViewQueueConsumer(queue, container)
-
-def create_container(settings: Settings) -> AsyncContainer:
-    return make_async_container(
-        ConfigProvider(settings),
-        DatabaseProvider(),
-        RepositoryProvider(),
-        ConnectorProvider(),
-        ServiceProvider(),
-        RedisProvider(),
-        QueueProvider(),
-        QueueProduceProvider(),
-        QueueConsumeProvider()
-    )
+    
+class BackgroundProcessorProvider(Provider):
+    @provide(scope=Scope.APP)
+    def get_protection_price_processor(self) -> ProtectionPriceProcessor:
+        return ProtectionPriceTaskDispatcher()

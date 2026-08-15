@@ -31,7 +31,7 @@ class EventService:
         )
 
     async def get_event_stats(self, event_id: int, organizer_id: int) -> EventDashboard:
-        event = await self.db_manager.event_repo.get_by_organizer_id(event_id, organizer_id)
+        event = await self.db_manager.event_repo.get_instance_by_organizer_id(event_id, organizer_id)
         if not event:
             raise EventNotFoundError(event_id=event_id)
 

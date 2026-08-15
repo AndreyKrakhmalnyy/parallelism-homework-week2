@@ -1,23 +1,11 @@
 from app.config import settings
-from taskiq import TaskiqScheduler
-from taskiq_redis import RedisStreamBroker
-from taskiq.middlewares import SimpleRetryMiddleware
-from taskiq.schedule_sources import LabelScheduleSource
+from app.container import create_container
+from dishka.integrations.taskiq import setup_dishka
 
-cpu_broker = RedisStreamBroker(
-    url=settings.redis.url,
-    queue_name="cpu_queue",
-    socket_timeout=None,
-    xread_count=1,
-).with_middlewares(SimpleRetryMiddleware(types_of_exceptions=(Exception,)),)
+from app.infrastructure.taskiq.brokers import *
+import app.infrastructure.taskiq.tasks
 
-asyncio_broker = RedisStreamBroker(
-    url=settings.redis.url,
-    queue_name="asyncio_queue",
-    socket_timeout=None
-).with_middlewares(SimpleRetryMiddleware(types_of_exceptions=(Exception,)),)
+_taskiq_container = create_container(settings)
 
-scheduler = TaskiqScheduler(
-    broker=asyncio_broker,
-    sources=[LabelScheduleSource(broker=asyncio_broker)],
-)
+setup_dishka(container=_taskiq_container, broker=cpu_broker)
+setup_dishka(container=_taskiq_container, broker=asyncio_broker)

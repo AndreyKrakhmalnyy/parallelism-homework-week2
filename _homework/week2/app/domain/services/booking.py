@@ -1,7 +1,8 @@
 import asyncio
+import time
 
 import httpx
-from app.infrastructure.taskiq.tasks import get_protection_price
+from app.domain.interfaces.protection import ProtectionPriceProcessor
 from app.infrastructure.postgres.manager import DatabaseManager
 from app.api.schemas.protection import ProtectionQuoteIn
 from app.api.schemas.payment import PaymentQuoteIn
@@ -20,11 +21,13 @@ class BookingService:
         self, 
         db_manager: DatabaseManager,
         payment_connector: PaymentConnector,
-        protection_connector: ProtectionConnector
+        protection_connector: ProtectionConnector,
+        protection_price_processor: ProtectionPriceProcessor
     ) -> None:
         self.db_manager = db_manager
         self.payment_connector = payment_connector
         self.protection_connector = protection_connector
+        self.protection_price_processor = protection_price_processor
 
     async def reservation_processing(self, event_id: int, seat_ids: list[int], user_id: int) -> CheckoutResponse:
         """Резервирует места и считает итоговую стоимость чекаута.
@@ -37,9 +40,9 @@ class BookingService:
         4. Комиссия платежа сохраняется всегда; поля страховки — только если она успела.
         """
         try:
-            if not (event := await self.db_manager.event_repo.get_by_id(event_id=event_id)):
+            if not (event := await self.db_manager.event_repo.get_instance_by_id(event_id=event_id)):
                 raise EventNotFoundError(event_id=event_id)
-            seats = await self.db_manager.event_seat_repo.get_event_seat_for_update(event_id=event_id, seat_ids=seat_ids)
+            seats = await self.db_manager.event_seat_repo.get_instance_for_update(event_id=event_id, seat_ids=seat_ids)
             not_founded_seat_ids = set(seat_ids) - {seat.seat_id for seat in seats}
 
             now = datetime.now(UTC).replace(tzinfo=None)
@@ -81,6 +84,7 @@ class BookingService:
             event_starts_at=event.starts_at,
         )
 
+        protection_task_start = time.monotonic()
         protection_task = asyncio.create_task(self.protection_connector.calculate(protection_payload))
 
         try:
@@ -90,10 +94,12 @@ class BookingService:
             protection_task.cancel()
             raise
 
+        elapsed_time = time.monotonic() - protection_task_start
+        remaining_timeout = max(0.0, 3.0 - elapsed_time)
         try:
-            protection_quote = await asyncio.wait_for(protection_task, timeout=3.0)
+            protection_quote = await asyncio.wait_for(protection_task, timeout=remaining_timeout)
         except (httpx.NetworkError, httpx.TimeoutException, httpx.HTTPStatusError, TimeoutError):
-            await get_protection_price.kiq(protection_payload)
+            await self.protection_price_processor.synchronize(protection_payload)
             protection_quote = None
 
         if protection_quote:
@@ -117,27 +123,7 @@ class BookingService:
             payment=payment_quote,
             protection=protection_quote
         )
-    
-    async def cancel_expired_bookings(self) -> dict:
-        all_bookings = await self.db_manager.booking_repo.get_list()
-        now = datetime.now(UTC).replace(tzinfo=None)
-        deleted_count = 0
 
-        for obj in all_bookings:
-            if obj.status == BookingStatus.pending_payment and obj.reserved_until < now:
-                async with self.db_manager.transaction() as db_manager:
-                    event_seats = await db_manager.event_seat_repo.get_event_seats_by_booking_id(obj.id)
-                    for event_seat in event_seats:
-                        event_seat.status = SeatStatus.available
-                        event_seat.booking_id = None
-                        event_seat.reserved_until = None
-
-                    await db_manager.session.flush()
-                    await db_manager.booking_repo.delete_by_id(obj.id)
-                deleted_count += 1
-
-        return {"deleted_count": deleted_count}
-        
     async def _cancel_reservation(self, booking: Booking, seats: list[EventSeat]) -> None:
         booking.status = BookingStatus.cancelled
 
@@ -145,4 +131,25 @@ class BookingService:
             seat.status = SeatStatus.available
             seat.reserved_until = None
             seat.booking_id = None
+        await self.db_manager.session.commit()
+
+    async def cancel_expired_bookings(self) -> dict:
+        async with self.db_manager.transaction() as db_manager:
+            expired_booking_ids = await db_manager.booking_repo.get_expired_reservation_list()
+
+            if not expired_booking_ids:
+                deleted_count = 0
+            else:
+                booking_ids = [b.id for b in expired_booking_ids]
+                await db_manager.event_seat_repo.free_by_booking_ids(booking_ids)
+                deleted_count = await db_manager.booking_repo.delete_instances_by_ids(booking_ids)
+        return {"deleted_count": deleted_count}
+    
+    async def set_protection_price(self, booking_id: int, protection_payload: ProtectionQuoteIn) -> None:
+        booking = await self.db_manager.booking_repo.get_instance_by_id(booking_id)
+
+        if not booking or booking.status != BookingStatus.pending_payment:
+            return
+        booking.protection_price = protection_payload.price
+        booking.with_protection = True
         await self.db_manager.session.commit()
