@@ -3,7 +3,7 @@ from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-BOOKING_TTL_MINUTES = 15
+BOOKING_TTL_MINUTES = 2
 
 class AppConfig(BaseModel):
     host: str

@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from typing import Optional
 from app.domain.enums import SeatStatus
 from app.infrastructure.postgres.dto import OccupancySummary
@@ -7,7 +7,7 @@ from app.infrastructure.postgres.repositories.base import BaseRepository
 
 
 class EventSeatRepository(BaseRepository):
-    async def get_event_seat_for_update(self, event_id: int, seat_ids: list[int]) -> Optional[EventSeat]:
+    async def get_instance_for_update(self, event_id: int, seat_ids: list[int]) -> Optional[EventSeat]:
         query = select(EventSeat).where(EventSeat.event_id == event_id, EventSeat.seat_id.in_(set(seat_ids))).with_for_update()
         orm_data = await self.session.execute(query)
         return orm_data.scalars().all()
@@ -33,3 +33,19 @@ class EventSeatRepository(BaseRepository):
             reserved=counts.get(SeatStatus.reserved, 0),
             sold=counts.get(SeatStatus.sold, 0),
         )
+    
+    async def get_instances_by_booking_id(self, booking_id: int) -> list[EventSeat]:
+        query = select(EventSeat).where(EventSeat.booking_id == booking_id)
+        orm_data = await self.session.execute(query)
+        return list(orm_data.scalars().all())
+
+    async def free_by_booking_ids(self, booking_ids: list[int]) -> None:
+        stmt = update(EventSeat).where(
+            EventSeat.booking_id.in_(booking_ids),
+            EventSeat.status == SeatStatus.reserved
+        ).values(
+            status=SeatStatus.available,
+            reserved_until=None,
+            booking_id=None
+        )
+        await self.session.execute(stmt)

@@ -17,8 +17,8 @@ class EventService:
         self.db_manager = db_manager
         self.redis_manager = redis_manager
 
-    async def get_list_events(self) -> list[EventRead]:
-        result = await self.db_manager.event_repo.get_list_events()
+    async def get_list(self) -> list[EventRead]:
+        result = await self.db_manager.event_repo.get_list()
         return [EventRead.model_validate(event) for event in result]
 
     async def get_event_by_id(self, event_id: int) -> EventRead:
@@ -31,7 +31,7 @@ class EventService:
         )
 
     async def get_event_stats(self, event_id: int, organizer_id: int) -> EventDashboard:
-        event = await self.db_manager.event_repo.get_event_by_organizer_id(event_id, organizer_id)
+        event = await self.db_manager.event_repo.get_instance_by_organizer_id(event_id, organizer_id)
         if not event:
             raise EventNotFoundError(event_id=event_id)
 

@@ -7,7 +7,9 @@ from app.api.dependencies import CurrentUserId
 from app.domain.exceptions import DomainError
 from app.domain.services.event import EventService
 
-router = APIRouter(prefix="/organizer", route_class=DishkaRoute)
+from app.infrastructure.taskiq.tasks import generate_event_dashboard_report
+
+router = APIRouter(prefix="/organizer", route_class=DishkaRoute, tags=["Организаторы"])
 
 @router.get("/events")
 async def list_organizer_events(organizer_id: CurrentUserId) -> list[EventRead]:
@@ -31,6 +33,9 @@ async def get_event_dashboard(
     # TODO: проверить, что мероприятие принадлежит organizer_id.
     # TODO: конкурентно загрузить аналитику продаж и занятость мест отдельными запросами к БД.
     try:
-        return await event_service.get_event_stats(event_id, organizer_id)  
+        event_dashboard = await event_service.get_event_stats(event_id, organizer_id) 
+        await  generate_event_dashboard_report.kiq(event_id, event_dashboard)
+        return event_dashboard
     except DomainError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e)) from None
+    

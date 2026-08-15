@@ -13,13 +13,13 @@ from app.api.schemas.event_seat import EventSeatRead
 from app.api.schemas.booking import BookingCreate
 from app.api.schemas.booking import CheckoutResponse
 
-router = APIRouter(prefix="/events", route_class=DishkaRoute)
+router = APIRouter(prefix="/events", route_class=DishkaRoute, tags=["Мероприятия"])
 
 
 @router.get("/", response_model=list[EventRead], status_code=200)
 async def list_events(event_service: FromDishka[EventService]) -> list[EventRead]:
     """Возвращает список мероприятий для клиента."""
-    return await event_service.get_list_events()
+    return await event_service.get_list()
 
 
 

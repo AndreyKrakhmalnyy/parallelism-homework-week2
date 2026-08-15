@@ -38,11 +38,13 @@ services:
   # app запускаем локально: сначала `uv run alembic upgrade head`
   # потом `uv run uvicorn app.main:app --reload`
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "${APP__PORT}:8000"
     volumes:
-      - .:/app
+      - .:/src
     depends_on:
       db:
         condition: service_healthy
@@ -56,16 +58,62 @@ services:
     command: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host ${APP__HOST} --port ${APP__PORT} --reload"]
 
   migration:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file:
       - .env
     volumes:
-      - .:/app
+      - .:/src
     depends_on:
       db:
         condition: service_healthy
     command: ["sh", "-c", "uv run alembic upgrade head"]
 
+  taskiq-cpu-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: uv run taskiq worker app.infrastructure.taskiq.app:cpu_broker app.infrastructure.taskiq.tasks  --workers=3 --max-async-tasks 1 --max-prefetch 1
+    volumes:
+      - ./app/reports/docs:/src/app/reports/docs
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  taskiq-asyncio-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: uv run taskiq worker app.infrastructure.taskiq.app:asyncio_broker app.infrastructure.taskiq.tasks
+    volumes:
+     - .:/src
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      
+  taskiq-scheduler-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: uv run taskiq scheduler app.infrastructure.taskiq.app:scheduler app.infrastructure.taskiq.tasks
+    volumes:
+     - .:/src
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
