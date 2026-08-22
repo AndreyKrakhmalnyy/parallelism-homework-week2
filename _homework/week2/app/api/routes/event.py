@@ -1,10 +1,10 @@
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, HTTPException, Request
-from app.domain.services.event import EventService
+from app.services.event import EventService
 from app.infrastructure.queues.producers.event import EventQueueProducer
 from app.domain.exceptions import DomainError
-from app.domain.services.booking import BookingService
+from app.services.booking import BookingService
 from app.api.dependencies import CurrentUserId
 from app.api.schemas.event import (
     EventRead, 

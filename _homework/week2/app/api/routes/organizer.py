@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from app.api.schemas.event import EventCreate, EventDashboard, EventRead
 from app.api.dependencies import CurrentUserId
 from app.domain.exceptions import DomainError
-from app.domain.services.event import EventService
+from app.services.event import EventService
 
 from app.infrastructure.taskiq.tasks import generate_event_dashboard_report
 

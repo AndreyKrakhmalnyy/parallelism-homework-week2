@@ -10,8 +10,8 @@ from app.infrastructure.api_connectors.external.protection import ProtectionConn
 from app.infrastructure.api_connectors.external.payment import PaymentConnector
 from app.infrastructure.postgres.repositories.seat import SeatRepository
 from app.infrastructure.postgres.repositories.event import EventRepository
-from app.domain.services.booking import BookingService
-from app.domain.services.event import EventService
+from app.services.booking import BookingService
+from app.services.event import EventService
 from app.config import (
     ConnectorsConfig,
     PostgresConfig,

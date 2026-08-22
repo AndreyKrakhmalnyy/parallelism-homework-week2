@@ -13,6 +13,7 @@ wheels/
 # IDE files
 .idea/
 **/.DS_Store
+notes.md
 
 # Frontend generated files
 _frontend/**/dist/

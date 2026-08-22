@@ -7,7 +7,7 @@ from dishka.integrations.taskiq import inject
 
 from app.api.schemas.protection import ProtectionQuoteIn
 from app.infrastructure.api_connectors.external.protection import ProtectionConnector
-from app.domain.services.booking import BookingService
+from app.services.booking import BookingService
 from app.reports.pdf_reports import PDF_REPORT_PATH, generate_event_dashboard_pdf
 from app.api.schemas.event import EventDashboard
 from app.infrastructure.taskiq.brokers import cpu_broker, asyncio_broker
