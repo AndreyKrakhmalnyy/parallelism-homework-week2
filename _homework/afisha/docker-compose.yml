@@ -115,5 +115,12 @@ services:
       redis:
         condition: service_healthy
 
+  purchase-monitoring:
+    build:
+      context: ../../purchase_monitoring
+      dockerfile: Dockerfile
+    env_file:
+      
+
 volumes:
   postgres_data:
