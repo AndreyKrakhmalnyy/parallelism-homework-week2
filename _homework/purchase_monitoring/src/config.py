@@ -24,10 +24,22 @@ class PostgresConfig(BaseModel):
             f"{self.password.get_secret_value()}"
             f"@{self.host}:{self.port}/{self.db}"
         )
+
+
+class KafkaConfig(BaseModel):
+    host: str
+    port: str
+    payment_ticket_topic: str
+
+    @property
+    def bootstrap_server(self) -> str:
+        return f"{self.host}:{self.port}"
+
     
 class Settings(BaseSettings):
     app: AppConfig
     postgres: PostgresConfig
+    kafka: KafkaConfig
 
     model_config = SettingsConfigDict(
         env_file=".env",

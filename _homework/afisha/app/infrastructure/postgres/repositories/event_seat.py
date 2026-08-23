@@ -1,7 +1,7 @@
 from sqlalchemy import func, select, update
 from typing import Optional
 from app.domain.enums import SeatStatus
-from app.infrastructure.postgres.dto import OccupancySummary
+from app.infrastructure.postgres.dto import OccupancySummaryDTO
 from app.infrastructure.postgres.models import EventSeat
 from app.infrastructure.postgres.repositories.base import BaseRepository
 
@@ -19,7 +19,7 @@ class EventSeatRepository(BaseRepository):
         )
         return await self.session.scalar(query)
 
-    async def get_occupancy_summary(self, event_id: int) -> OccupancySummary:
+    async def get_occupancy_summary(self, event_id: int) -> OccupancySummaryDTO:
         query = (
             select(EventSeat.status, func.count(EventSeat.id))
             .where(EventSeat.event_id == event_id)
@@ -27,7 +27,7 @@ class EventSeatRepository(BaseRepository):
         )
         rows = (await self.session.execute(query)).all()
         counts = dict(rows)
-        return OccupancySummary(
+        return OccupancySummaryDTO(
             total=sum(counts.values()),
             available=counts.get(SeatStatus.available, 0),
             reserved=counts.get(SeatStatus.reserved, 0),

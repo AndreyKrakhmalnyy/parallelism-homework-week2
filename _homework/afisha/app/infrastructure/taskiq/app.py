@@ -3,7 +3,7 @@ from app.container import create_container
 from dishka.integrations.taskiq import setup_dishka
 
 from app.infrastructure.taskiq.brokers import *
-import app.infrastructure.taskiq.tasks
+from app.infrastructure.taskiq.tasks import *
 
 _taskiq_container = create_container(settings)
 

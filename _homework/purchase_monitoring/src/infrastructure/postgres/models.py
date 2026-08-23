@@ -1,4 +1,4 @@
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class BaseDBModel(DeclarativeBase):
@@ -6,4 +6,6 @@ class BaseDBModel(DeclarativeBase):
 
 
 class PurchaseTicket(BaseDBModel):
-    pass
+    __tablename__ = "purchase_tickets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)

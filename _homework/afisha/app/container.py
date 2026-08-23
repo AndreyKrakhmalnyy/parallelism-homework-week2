@@ -1,7 +1,7 @@
 from dishka import make_async_container, AsyncContainer
 from app.config import Settings
 from app.ioc import (
-    ConfigProvider, DatabaseProvider, RepositoryProvider, 
+    ConfigProvider, DatabaseProvider, EventPublisherProvider, KafkaProvider, RepositoryProvider, 
     ConnectorProvider, ServiceProvider, RedisProvider, 
     QueueProvider, QueueProduceProvider, QueueConsumeProvider, 
     BackgroundProcessorProvider
@@ -19,4 +19,6 @@ def create_container(settings: Settings) -> AsyncContainer:
         QueueProduceProvider(),
         QueueConsumeProvider(),
         BackgroundProcessorProvider(),
+        KafkaProvider(),
+        EventPublisherProvider()
     )

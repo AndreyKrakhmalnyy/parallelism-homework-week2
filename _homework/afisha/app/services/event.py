@@ -1,6 +1,6 @@
 from asyncio import TaskGroup
 from app.infrastructure.redis.manager import RedisManager
-from app.infrastructure.postgres.dto import OccupancySummary, SalesSummary
+from app.infrastructure.postgres.dto import OccupancySummaryDTO, SalesSummaryDTO
 from app.domain.exceptions import EventCacheTimeoutError, EventNotFoundError
 from app.infrastructure.postgres.manager import DatabaseManager
 from app.api.schemas.event import EventDashboard, EventRead, OccupancyDashboard, SalesDashboard
@@ -66,7 +66,7 @@ class EventService:
             occupancy=occupancy,
         )
 
-    async def _get_sales_summary(self, event_id: int) -> SalesSummary:
+    async def _get_sales_summary(self, event_id: int) -> SalesSummaryDTO:
         async with self.db_manager.transaction() as db_manager:
             sales_summary = await db_manager.booking_repo.get_sales_summary(event_id)
             return sales_summary
@@ -76,6 +76,6 @@ class EventService:
             count_sold = await db_manager.event_seat_repo.count_sold(event_id)
             return count_sold
 
-    async def _get_occupancy_summary(self, event_id: int) -> OccupancySummary:
+    async def _get_occupancy_summary(self, event_id: int) -> OccupancySummaryDTO:
         async with self.db_manager.transaction() as db_manager:
             return await db_manager.event_seat_repo.get_occupancy_summary(event_id)

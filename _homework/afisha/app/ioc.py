@@ -1,5 +1,6 @@
 import asyncio
 from typing import AsyncIterator
+from app.infrastructure.kafka.producers.event import PaymentTicketPublisher
 from app.domain.interfaces.protection import ProtectionPriceProcessor
 from app.infrastructure.taskiq.dispatcher import ProtectionPriceTaskDispatcher
 from app.infrastructure.queues.producers.event import EventQueueProducer
@@ -14,6 +15,7 @@ from app.services.booking import BookingService
 from app.services.event import EventService
 from app.config import (
     ConnectorsConfig,
+    KafkaConfig,
     PostgresConfig,
     RedisConfig,
     Settings
@@ -21,7 +23,7 @@ from app.config import (
 from dishka import AsyncContainer, Provider, Scope, provide
 from app.infrastructure.postgres.manager import DatabaseManager, PostgresClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from faststream.kafka import KafkaBroker
 
 class ConfigProvider(Provider):
     def __init__(self, settings: Settings) -> None:
@@ -43,6 +45,11 @@ class ConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def get_redis_config(self, settings: Settings) -> RedisConfig:
         return settings.redis
+
+    @provide(scope=Scope.APP)
+    def get_kafka_config(self, settings: Settings) -> KafkaConfig:
+        return settings.kafka
+
 
 class DatabaseProvider(Provider):
     @provide(scope=Scope.APP)
@@ -143,3 +150,21 @@ class BackgroundProcessorProvider(Provider):
     @provide(scope=Scope.APP)
     def get_protection_price_processor(self) -> ProtectionPriceProcessor:
         return ProtectionPriceTaskDispatcher()
+
+class KafkaProvider(Provider):
+    @provide(scope=Scope.APP)
+    async def get_kafka_broker(self, config: KafkaConfig) -> AsyncIterator[KafkaBroker]:
+        broker = KafkaBroker(
+            bootstrap_servers=config.bootstrap_server,
+            linger_ms=config.linger_ms,
+        )
+        await broker.start()
+        yield broker
+        await broker.stop()
+
+class EventPublisherProvider(Provider):
+    scope = Scope.APP
+
+    @provide
+    def get_payment_ticket_publisher(self, broker: KafkaBroker, config: KafkaConfig) -> PaymentTicketPublisher:
+        return PaymentTicketPublisher(broker=broker, topic=config.payment_ticket_topic)

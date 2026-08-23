@@ -3,13 +3,13 @@ from datetime import datetime
 
 
 @dataclass(slots=True, frozen=True)
-class SalesSummary:
+class SalesSummaryDTO:
     paid_orders: int
     revenue: int
 
 
 @dataclass(slots=True, frozen=True)
-class OccupancySummary:
+class OccupancySummaryDTO:
     total: int
     available: int
     reserved: int

@@ -51,7 +51,7 @@ class RedisConfig(BaseModel):
     database: int = 0
 
     @property
-    def url(self):
+    def url(self) -> str:
         if self.password is None:
             return f"redis://{self.host}:{self.port}/{self.database}"
         
@@ -59,11 +59,22 @@ class RedisConfig(BaseModel):
         return f"redis://{password}@{self.host}:{self.port}/{self.database}"
 
 
+class KafkaConfig(BaseModel):
+    host: str
+    port: str
+    linger_ms: int = 50
+    payment_ticket_topic: str
+
+    @property
+    def bootstrap_server(self) -> str:
+        return f"{self.host}:{self.port}"
+
 class Settings(BaseSettings):
     app: AppConfig
     postgres: PostgresConfig
     connectors: ConnectorsConfig
     redis: RedisConfig
+    kafka: KafkaConfig
 
     model_config = SettingsConfigDict(
         env_file=".env",
