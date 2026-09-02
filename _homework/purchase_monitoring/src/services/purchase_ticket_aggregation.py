@@ -55,6 +55,6 @@ class PurchaseTicketAggregationService:
                 total_amount=data["total_amount"]
             ) for event_id, data in mapper.items()
         ]
-        events = await self.db_manager.event_payment_activity_repo.add_bulk(result)
+        await self.db_manager.event_payment_activity_repo.add_bulk(result)
         logger.info(f"Aggregated {len(result)} events from {len(valid_data)} purchase tickets and added to DB")
-        return events
+        return result

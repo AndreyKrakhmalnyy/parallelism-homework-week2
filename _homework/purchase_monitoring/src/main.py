@@ -4,7 +4,7 @@ from dishka import AsyncContainer
 from fastapi import FastAPI
 import uvicorn
 from dishka.integrations.fastapi import setup_dishka as setup_dishka_fastapi
-from dishka.integrations.faststream import setup_dishka as setup_dishka_faststream
+from dishka_faststream import setup_dishka as setup_dishka_faststream
 from src.config import settings
 from src.logging_config import configure_logging
 from src.container import create_container
@@ -20,7 +20,10 @@ async def lifespan(app: FastAPI):
     broker = await container.get(KafkaBroker)
     setup_dishka_faststream(container=container, broker=broker)
     await container.get(PurchaseTicketConsumer)
+    await broker.start()
+    
     yield
+    await broker.stop()
     await container.close()
 
 

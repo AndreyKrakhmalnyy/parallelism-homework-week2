@@ -82,14 +82,10 @@ class ServiceProvider(Provider):
 
 class KafkaProvider(Provider):
     @provide(scope=Scope.APP)
-    async def get_kafka_broker(self, config: KafkaConfig) -> AsyncIterator[KafkaBroker]:
-        broker = KafkaBroker(bootstrap_servers=config.bootstrap_server)
-        
-        await broker.start()
-        yield broker
-        await broker.stop()
-        
+    def get_kafka_broker(self, config: KafkaConfig) -> KafkaBroker:
+        return KafkaBroker(bootstrap_servers=config.bootstrap_server)
 
+        
 class EventConsumerProvider(Provider):
     scope = Scope.APP
 

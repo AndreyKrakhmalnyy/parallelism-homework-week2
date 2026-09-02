@@ -2,12 +2,12 @@ import logging
 
 from faststream import AckPolicy
 from dishka import FromDishka
-from dishka.integrations.faststream import inject
+from dishka_faststream import inject
 
 from src.services.ws_broadcaster import WebsockerBroadcasterService
 from src.services.purchase_ticket_aggregation import PurchaseTicketAggregationService
 from src.infrastructure.kafka.consumers.base import BaseEventConsumer, SubscriberParams
-from src.infrastructure.postgres.manager import DatabaseManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class PurchaseTicketConsumer(BaseEventConsumer):
         Если есть данные, которые были агрегированы и закоммичены в БД, то рассылает их всем 
         подключенным клиентам через WebSocket.
         """
-        logger.info(f"PurchaseTicketConsumer started proccessing, receuved {len(messages)} messages")
+        logger.info(f"PurchaseTicketConsumer started proccessing, recved {len(messages)} messages")
         commited_events = await purchase_ticket_agg_service.aggregate(messages)
         logger.info("PurchaseTicketConsumer finished processing")
         
