@@ -4,7 +4,7 @@ import logging
 from dishka import FromDishka
 from dishka.integrations.taskiq import inject
 
-from app.infrastructure.kafka.producers.event import PaymentTicketPublisher
+from app.infrastructure.kafka.producers.purchase_ticket import PurchaseTicketProducer
 from app.services.booking import BookingService
 from app.infrastructure.taskiq.brokers import asyncio_broker
 
@@ -38,8 +38,9 @@ async def cancel_expired_bookings(booking_service: FromDishka[BookingService]) -
 )
 @inject
 async def generate_payment_ticket_events(
-    payment_ticket_publisher: FromDishka[PaymentTicketPublisher]
-):
+    payment_ticket_publisher: FromDishka[PurchaseTicketProducer]
+) -> None:
+    """Генерирует события о покупках билетов на мероприятия и публикует брокеру в топик `purchase.ticket`"""
     logger.info("Generate test payment-ticket events started")
     messages_count = await payment_ticket_publisher.publish_batch()
     logger.info("Generate test payment-ticket events finished, published events: %s", messages_count)

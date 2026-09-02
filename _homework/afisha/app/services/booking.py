@@ -5,7 +5,7 @@ import httpx
 from app.domain.interfaces.protection import ProtectionPriceProcessor
 from app.domain.interfaces.gateways import PaymentGatewayPort, ProtectionGatewayPort
 from app.infrastructure.postgres.manager import DatabaseManager
-from app.api.schemas.protection import ProtectionQuoteIn
+from app.api.schemas.protection import ProtectionQuoteIn, ProtectionQuoteOut
 from app.api.schemas.payment import PaymentQuoteIn
 from app.infrastructure.postgres.models import Booking, EventSeat
 from app.domain.enums import BookingStatus, SeatStatus
@@ -144,7 +144,7 @@ class BookingService:
                 deleted_count = await db_manager.booking_repo.delete_instances_by_ids(booking_ids)
         return {"deleted_count": deleted_count}
     
-    async def set_protection_price(self, booking_id: int, protection_payload: ProtectionQuoteIn) -> None:
+    async def set_protection_price(self, booking_id: int, protection_payload: ProtectionQuoteOut) -> None:
         booking = await self.db_manager.booking_repo.get_instance_by_id(booking_id)
 
         if not booking or booking.status != BookingStatus.pending_payment:

@@ -25,11 +25,17 @@ class PostgresConfig(BaseModel):
             f"@{self.host}:{self.port}/{self.db}"
         )
 
+class PurchaseTicketConsumerConfig(BaseModel):
+    topic: str
+    group_id: str
+    max_records: int = 200
+    batch_timeout_ms: int = 500
+
 
 class KafkaConfig(BaseModel):
     host: str
     port: str
-    payment_ticket_topic: str
+    purchase_ticket_consumer: PurchaseTicketConsumerConfig
 
     @property
     def bootstrap_server(self) -> str:

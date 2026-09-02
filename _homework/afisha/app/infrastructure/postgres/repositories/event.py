@@ -20,7 +20,7 @@ class EventRepository(BaseRepository):
         orm_data = await self.session.execute(query)
         return orm_data.scalar_one_or_none()
 
-    async def add_event_views_bulk(self, events_views: list[EventView]):
+    async def add_bulk_event_views(self, events_views: list[EventView]):
         stmt = pg_insert(EventView).values([{"event_id": ev_view.event_id, "views_count": ev_view.views_count} for ev_view in events_views])
         upsert_stmt = stmt.on_conflict_do_update(index_elements=["event_id"], set_={"views_count": EventView.views_count + stmt.excluded.views_count})
         await self.session.execute(upsert_stmt)

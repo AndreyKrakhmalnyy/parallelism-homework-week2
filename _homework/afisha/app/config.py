@@ -59,11 +59,15 @@ class RedisConfig(BaseModel):
         return f"redis://{password}@{self.host}:{self.port}/{self.database}"
 
 
+class PurchaseTicketProducerConfig(BaseModel):
+    topic: str
+
 class KafkaConfig(BaseModel):
     host: str
     port: str
     linger_ms: int = 50
-    payment_ticket_topic: str
+    
+    purchase_ticket_producer: PurchaseTicketProducerConfig
 
     @property
     def bootstrap_server(self) -> str:

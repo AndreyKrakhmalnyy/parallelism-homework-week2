@@ -5,4 +5,4 @@ from app.api.schemas.protection import ProtectionQuoteIn
 
 class ProtectionPriceTaskDispatcher(ProtectionPriceProcessor):
     async def synchronize(self, payload: ProtectionQuoteIn) -> None:
-        await sync_protection_price.kiq(payload)
+        await sync_protection_price.kiq(payload)  # type: ignore[call-arg]

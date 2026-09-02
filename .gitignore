@@ -38,3 +38,6 @@ celery*.log
 
 # Generated reports
 samokat/reports/
+
+# VSCODE
+settings.json

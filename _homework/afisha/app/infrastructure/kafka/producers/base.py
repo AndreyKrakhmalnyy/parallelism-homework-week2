@@ -13,6 +13,6 @@ class BaseEventProducer(ABC):
             *[
                 KafkaPublishMessage(message, key=str(message["event_id"]).encode())
                 for message in messages
-            ],
+            ], # type: ignore
             topic=self.topic
         )

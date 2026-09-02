@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from src.infrastructure.postgres.repositories.event_payment_activity import EventPaymentActivityRepository
 from src.config import PostgresConfig
 
 
@@ -60,3 +61,7 @@ class DatabaseManager:
 
     async def rollback(self) -> None:
         await self.session.rollback()
+        
+    @property
+    def event_payment_activity_repo(self) -> EventPaymentActivityRepository:
+        return EventPaymentActivityRepository(self.session)

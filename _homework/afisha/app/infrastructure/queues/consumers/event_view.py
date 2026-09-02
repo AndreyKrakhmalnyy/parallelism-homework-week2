@@ -10,6 +10,7 @@ from app.infrastructure.queues.consumers.base import BaseQueueConsumer
 from app.infrastructure.postgres.models import EventView
 from app.infrastructure.postgres.manager import DatabaseManager
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +57,7 @@ class EventViewQueueConsumer(BaseQueueConsumer):
         try:
             async with self.container() as request_container:
                 db_manager = await request_container.get(DatabaseManager)
-                await db_manager.event_repo.add_event_views_bulk(
+                await db_manager.event_repo.add_bulk_event_views(
                     [
                         EventView(event_id=event_id, views_count=views_count)
                         for event_id, views_count in self.agg_store.items()

@@ -1,29 +1,31 @@
 from collections.abc import Awaitable
 import random
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.exceptions import LockError
 from app.config import RedisConfig
 
+DTOModel = TypeVar("DTOModel", bound=BaseModel)
+
 
 class RedisManager:
     def __init__(self, redis: Redis) -> None:
         self.client = redis
-    
+
     async def close(self) -> None:
         await self.client.aclose()
-    
+
     async def get_or_set_with_lock(
         self,
         ttl: int,
         cache_key: str,
-        dto: BaseModel,
+        dto: type[DTOModel],
         fetch: Callable[[], Awaitable[Any]],
         error_cls: Exception,
         timeout: int = 5,
         blocking_timeout: int = 3,
-    ):
+    ) -> DTOModel:
         cached_data = await self.client.get(cache_key)
 
         if cached_data:
@@ -50,7 +52,7 @@ class RedisManager:
         except LockError:
             raise error_cls
     
-    def _ttl_jitter(self, ttl: int) -> float:
+    def _ttl_jitter(self, ttl: int) -> int:
         delay = min(30, max(1, ttl // 2))
         return max(1, ttl + random.randint(-delay, delay))
 

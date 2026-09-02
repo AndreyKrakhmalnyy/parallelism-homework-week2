@@ -133,6 +133,7 @@ services:
       kafka-init:
         condition: service_completed_successfully
 
+  # docker exec -it 093d1bf6fb38 uv run ipython
   purchase-monitoring-app:
     build:
       context: ./purchase_monitoring
@@ -196,8 +197,8 @@ services:
           $$KAFKA_TOPICS --bootstrap-server kafka:29092 --list >/dev/null 2>&1 && break
           sleep 2
         done
-        $$KAFKA_TOPICS --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_PAYMENT_TICKET_TOPIC} --partitions 3 --replication-factor 1
-        $$KAFKA_TOPICS --bootstrap-server kafka:29092 --alter --topic ${KAFKA_PAYMENT_TICKET_TOPIC} --partitions 3 || true
+        $$KAFKA_TOPICS --bootstrap-server kafka:29092 --create --if-not-exists --topic ${KAFKA_PURCHASE_TICKET_TOPIC} --partitions 3 --replication-factor 1
+        $$KAFKA_TOPICS --bootstrap-server kafka:29092 --alter --topic ${KAFKA_PURCHASE_TICKET_TOPIC} --partitions 3 || true
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

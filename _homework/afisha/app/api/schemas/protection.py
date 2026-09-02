@@ -1,4 +1,6 @@
 
+from typing import Optional
+
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -13,4 +15,4 @@ class ProtectionQuoteOut(BaseModel):
     available: bool
     price: int
     covered_amount: int
-    description: str | None = None
+    description: Optional[str] = None

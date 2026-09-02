@@ -1,6 +1,6 @@
 import asyncio
 from typing import AsyncIterator
-from app.infrastructure.kafka.producers.event import PaymentTicketPublisher
+from app.infrastructure.kafka.producers.purchase_ticket import PurchaseTicketProducer
 from app.domain.interfaces.protection import ProtectionPriceProcessor
 from app.infrastructure.taskiq.dispatcher import ProtectionPriceTaskDispatcher
 from app.infrastructure.queues.producers.event import EventQueueProducer
@@ -17,6 +17,7 @@ from app.config import (
     ConnectorsConfig,
     KafkaConfig,
     PostgresConfig,
+    PurchaseTicketProducerConfig,
     RedisConfig,
     Settings
 )
@@ -49,6 +50,10 @@ class ConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def get_kafka_config(self, settings: Settings) -> KafkaConfig:
         return settings.kafka
+
+    @provide(scope=Scope.APP)
+    def get_purchase_ticket_consumer_config(self, settings: Settings) -> PurchaseTicketProducerConfig:
+        return settings.kafka.purchase_ticket_producer
 
 
 class DatabaseProvider(Provider):
@@ -162,9 +167,9 @@ class KafkaProvider(Provider):
         yield broker
         await broker.stop()
 
-class EventPublisherProvider(Provider):
+class EventProducerProvider(Provider):
     scope = Scope.APP
 
     @provide
-    def get_payment_ticket_publisher(self, broker: KafkaBroker, config: KafkaConfig) -> PaymentTicketPublisher:
-        return PaymentTicketPublisher(broker=broker, topic=config.payment_ticket_topic)
+    def get_payment_ticket_producer(self, broker: KafkaBroker, config: PurchaseTicketProducerConfig) -> PurchaseTicketProducer:
+        return PurchaseTicketProducer(broker=broker, topic=config.topic)

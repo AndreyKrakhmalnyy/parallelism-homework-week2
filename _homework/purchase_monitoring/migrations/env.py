@@ -21,6 +21,14 @@ target_metadata = BaseDBModel.metadata
 VERSION_TABLE = "purchase_monitoring_alembic_version"
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    # игнорируем таблицы afisha: они есть в базе, но не в нашей metadata,
+    # иначе autogenerate предложит их удалить.
+    if type_ == "table" and reflected and compare_to is None:
+        return False
+    return True
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=settings.postgres.url,
@@ -28,6 +36,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         version_table=VERSION_TABLE,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -39,6 +48,7 @@ def do_run_migrations(connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         version_table=VERSION_TABLE,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()

@@ -4,9 +4,10 @@ import uuid
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class PaymentTicketDTO:
+class EventPaymentActivity:
+    batch_id: uuid.UUID = field(default_factory=uuid.uuid4)
     event_id: int
+    payments_count: int
     tickets_count: int
     total_amount: int
-    payment_id: uuid.UUID = field(default_factory=uuid.uuid4)
-    paid_at: datetime = field(default_factory=datetime.now)
+    created_at: datetime = field(default_factory=datetime.now)
