@@ -1,6 +1,6 @@
+from dataclasses import asdict
 import random
 from datetime import datetime
-from dataclasses import asdict
 from typing import Union
 import uuid
 

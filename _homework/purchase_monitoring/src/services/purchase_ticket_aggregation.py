@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Any, Union
 
 from pydantic import ValidationError
 
@@ -15,7 +15,7 @@ class PurchaseTicketAggregationService:
     def __init__(self, db_manager: DatabaseManager) -> None:
         self.db_manager = db_manager
 
-    async def aggregate(self, purchase_tickets: list[dict]) -> Union[list[EventPaymentActivity], None]:
+    async def aggregate(self, purchase_tickets: list[dict]) -> Union[list[Any], list[EventPaymentActivity]]:
         """Агрегирует покупки билетов по мероприятиям и коммитит в БД (массовая вставка).
         
         Сначала валидирует данные сообщения через `pydantic` модель, отсеивая невалидные
@@ -56,5 +56,6 @@ class PurchaseTicketAggregationService:
             ) for event_id, data in mapper.items()
         ]
         await self.db_manager.event_payment_activity_repo.add_bulk(result)
+        await self.db_manager.commit()
         logger.info(f"Aggregated {len(result)} events from {len(valid_data)} purchase tickets and added to DB")
         return result

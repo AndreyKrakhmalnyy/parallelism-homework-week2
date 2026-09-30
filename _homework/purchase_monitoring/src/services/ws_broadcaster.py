@@ -1,6 +1,6 @@
+from dataclasses import asdict
 from src.infrastructure.websocket.manager import WebsocketManager
 from src.domain.events.event_payment_activity import EventPaymentActivity
-from dataclasses import asdict
 
 
 class WebsockerBroadcasterService:

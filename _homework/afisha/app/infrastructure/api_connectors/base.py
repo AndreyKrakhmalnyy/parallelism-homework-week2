@@ -1,10 +1,30 @@
 import asyncio
+import logging
 import random
-from re import I
+import time
 import httpx
 from httpx import AsyncClient, Response
 from typing import Optional
 
+
+logger = logging.getLogger("samokat.httpx")
+
+
+async def on_request(request: httpx.Request) -> None:
+    request.extensions["started_at"] = time.perf_counter()
+
+
+async def on_response(response: httpx.Response) -> None:
+    started_at = response.request.extensions.get("started_at")
+    duration = time.perf_counter() - started_at if started_at is not None else 0
+
+    logger.info(
+        "HTTP request completed: method=%s url=%s status=%s duration=%.3fs",
+        response.request.method,
+        response.request.url,
+        response.status_code,
+        duration,
+    )
 
 class BaseHTTPConnector:
     def __init__(
@@ -19,6 +39,10 @@ class BaseHTTPConnector:
             base_url=base_url,
             timeout=timeout,
             headers=headers,
+            event_hooks={
+                "request": [on_request],
+                "response": [on_response],
+            },
         )
 
     async def close_connection(self) -> None:
@@ -30,7 +54,7 @@ class BaseHTTPConnector:
             url: str,
             retry: bool = False,
             **kwargs
-        ) -> Response:
+        ) -> Optional[Response]:
         if not retry:
             response = await self.client.request(method, url, **kwargs)
             response.raise_for_status()

@@ -10,6 +10,7 @@ from src.logging_config import configure_logging
 from src.container import create_container
 from faststream.kafka import KafkaBroker
 from src.infrastructure.kafka.consumers.purchase_ticket import PurchaseTicketConsumer
+from api.routes import main_router
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ def create_app(container: AsyncContainer) -> FastAPI:
     app = FastAPI(title="Аналитика перемещения курьеров", lifespan=lifespan)
     setup_dishka_fastapi(container=container, app=app)
     configure_logging()
+    app.include_router(main_router)
     return app
 
 container = create_container(settings)
