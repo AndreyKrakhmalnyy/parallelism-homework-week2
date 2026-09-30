@@ -1,0 +1,27 @@
+[project]
+name = "Afisha"
+version = "0.1.0"
+description = ""
+requires-python = ">=3.13, <3.14"
+dependencies = [
+    "alembic==1.16.2",
+    "clickhouse-connect>=1.6.0",
+    "dishka>=1.10.1",
+    "fastapi==0.116.1",
+    "faststream[kafka]>=0.7.4",
+    "greenlet==3.2.3",
+    "httpx>=0.28.1",
+    "psycopg[binary,pool]==3.2.9",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.2",
+    "redis>=8.0.1",
+    "reportlab>=5.0.0",
+    "sqlalchemy==2.0.41",
+    "taskiq-redis>=1.2.3",
+    "uvicorn[standard]==0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.12.2",
+]

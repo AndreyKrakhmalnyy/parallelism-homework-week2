@@ -1,0 +1,51 @@
+from sqlalchemy import func, select, update
+from typing import Optional, Sequence
+from app.domain.enums import SeatStatus
+from app.domain.dto.booking import OccupancySummary
+from app.infrastructure.postgres.models import EventSeat
+from app.infrastructure.postgres.repositories.base import BaseRepository
+
+
+class EventSeatRepository(BaseRepository):
+    async def get_instance_for_update(self, event_id: int, seat_ids: list[int]) -> Sequence[EventSeat]:
+        query = select(EventSeat).where(EventSeat.event_id == event_id, EventSeat.seat_id.in_(set(seat_ids))).with_for_update()
+        orm_data = await self.session.execute(query)
+        return orm_data.scalars().all()
+
+    async def count_sold(self, event_id: int) -> Optional[int]:
+        query = select(func.count(EventSeat.id)).where(
+            EventSeat.event_id == event_id,
+            EventSeat.status == SeatStatus.sold,
+        )
+        return await self.session.scalar(query)
+
+    async def get_occupancy_summary(self, event_id: int) -> OccupancySummary:
+        query = (
+            select(EventSeat.status, func.count(EventSeat.id))
+            .where(EventSeat.event_id == event_id)
+            .group_by(EventSeat.status)
+        )
+        rows = (await self.session.execute(query)).all()
+        counts: dict[SeatStatus, int] = {status: count for status, count in rows}
+        return OccupancySummary(
+            total=sum(counts.values()),
+            available=counts.get(SeatStatus.available, 0),
+            reserved=counts.get(SeatStatus.reserved, 0),
+            sold=counts.get(SeatStatus.sold, 0),
+        )
+    
+    async def get_instances_by_booking_id(self, booking_id: int) -> list[EventSeat]:
+        query = select(EventSeat).where(EventSeat.booking_id == booking_id)
+        orm_data = await self.session.execute(query)
+        return list(orm_data.scalars().all())
+
+    async def free_by_booking_ids(self, booking_ids: list[int]) -> None:
+        stmt = update(EventSeat).where(
+            EventSeat.booking_id.in_(booking_ids),
+            EventSeat.status == SeatStatus.reserved
+        ).values(
+            status=SeatStatus.available,
+            reserved_until=None,
+            booking_id=None
+        )
+        await self.session.execute(stmt)
