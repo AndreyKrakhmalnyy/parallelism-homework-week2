@@ -3,7 +3,7 @@ class DomainError(Exception):
 
 class EventSeatNotFoundError(DomainError):
     status_code = 404
-    def __init__(self, event_id: int, seat_ids: list[int]) -> None:
+    def __init__(self, event_id: int, seat_ids: set[int]) -> None:
         self.detail = f"Selected seats (with IDs {", ".join(str(seat) for seat in seat_ids)}) for event with ID={event_id} not found"
         super().__init__(self.detail)
 

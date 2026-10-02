@@ -2,7 +2,7 @@ import asyncio
 from typing import AsyncIterator
 from app.infrastructure.kafka.producers.purchase_ticket import PurchaseTicketProducer
 from app.domain.interfaces.protection import ProtectionPriceProcessor
-from app.infrastructure.taskiq.dispatcher import ProtectionPriceTaskDispatcher
+from app.infrastructure.taskiq.adapters.protection import ProtectionPriceTaskDispatcher
 from app.infrastructure.queues.producers.event import EventQueueProducer
 from app.infrastructure.queues.types import EventViewQueue
 from app.infrastructure.queues.consumers.event_view import EventViewQueueConsumer
