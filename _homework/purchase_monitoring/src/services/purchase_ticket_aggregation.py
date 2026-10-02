@@ -15,7 +15,7 @@ class PurchaseTicketAggregationService:
     def __init__(self, db_manager: DatabaseManager) -> None:
         self.db_manager = db_manager
 
-    async def aggregate(self, purchase_tickets: list[dict]) -> Union[list[Any], list[EventPaymentActivity]]:
+    async def aggregate_and_save(self, purchase_tickets: list[dict]) -> Union[list[Any], list[EventPaymentActivity]]:
         """Агрегирует покупки билетов по мероприятиям и коммитит в БД (массовая вставка).
         
         Сначала валидирует данные сообщения через `pydantic` модель, отсеивая невалидные

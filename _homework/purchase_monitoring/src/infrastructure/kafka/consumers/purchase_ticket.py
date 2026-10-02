@@ -33,7 +33,7 @@ class PurchaseTicketConsumer(BaseEventConsumer):
         подключенным клиентам через WebSocket.
         """
         logger.info(f"PurchaseTicketConsumer started proccessing, recved {len(messages)} messages")
-        commited_events = await purchase_ticket_agg_service.aggregate(messages)
+        commited_events = await purchase_ticket_agg_service.aggregate_and_save(messages)
         logger.info("PurchaseTicketConsumer finished processing")
         
         if commited_events:
